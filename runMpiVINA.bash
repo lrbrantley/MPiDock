@@ -1,9 +1,9 @@
 #!/bin/bash
 #
-#SBATCH -N 2
-#SBATCH -n 12
+#SBATCH -N 1
+#SBATCH -n 8
 #SBATCH -c 6
-#SBATCH -t 0-23:00:00
+#SBATCH -t 3-00:00:00
 #SBATCH -o testrun.out
 #SBATCH -e testrun.err
 
