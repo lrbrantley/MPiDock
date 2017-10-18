@@ -1,0 +1,45 @@
+#!/bin/python3
+from os import system 
+import subprocess
+import sys
+import argparse
+
+
+parser = argparse.ArgumentParser(description='Process some integers.')
+parser.add_argument('-r', '--reset', action='store_true', 
+                    help='rewrite host_file with currently active nodes')
+parser.set_defaults(reset=False)
+args = parser.parse_args()
+
+
+def rewrite_lab_state():
+    good_nodes = list()
+    for i in range(10, 37):
+        cmd = "127x" + str(i) + ".csc.calpoly.edu"
+        val = 0
+        try:
+            val = subprocess.check_output(['ping', '-c 2', cmd])
+        except subprocess.CalledProcessError as e:
+            continue
+        if val is not 0:
+            good_nodes.append(cmd)
+    hoster = subprocess.check_output(['hostname'])
+    hoster = str(hoster, 'utf-8')
+    hoster = hoster.rstrip('\n')
+    if hoster in good_nodes:
+        good_nodes.remove(hoster)
+    good_nodes.insert(0, hoster)
+    with open('host_file', 'w') as hosts:
+        for node in good_nodes:
+            hosts.write(node + '\n')
+    return good_nodes
+
+
+print ("This is a Lab 127 Impromptu Cluster Creator/Manager")
+nodes = 0
+while( nodes < 1 or nodes > 36 ):
+    inputs = input ("Enter the number of machine you wish to use (1 to 36): ")
+    nodes = int(inputs)
+
+if args.reset:
+    print( rewrite_lab_state() )

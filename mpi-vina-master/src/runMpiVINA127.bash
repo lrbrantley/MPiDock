@@ -7,12 +7,11 @@ mkdir -p Output
 mkdir -p ProcessedLigand
 make
 
-STATE= plm_rsh_no_tree_spawn 1
+STATE="plm_rsh_no_tree_spawn 1"
 HOST=host_file
-SOURCE= /usr/lib64/openmpi/bin/mpirun
 #Run the application.
 echo "MPI-Vina is running..."
-$SOURCE --mca $STATE -hostfile $HOST -np 4 mpiVINA > Output/MpiVina.log
+/usr/lib64/openmpi/bin/mpirun --mca ${STATE} -hostfile $HOST -np 4 mpiVINA > Output/MpiVina.log
 echo "Processing has finished"
 echo "See the MpiVina.log file."
 
