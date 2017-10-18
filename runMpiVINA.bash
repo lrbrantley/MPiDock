@@ -8,7 +8,7 @@
 #SBATCH -e testrun.err
 
 #Compile the application.
-ls > ligandlist ./Ligand
+ls ./Ligand > ligandlist
 mkdir -p Output
 mkdir -p ProcessedLigand
 make
