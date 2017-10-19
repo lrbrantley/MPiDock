@@ -6,37 +6,19 @@ import argparse
 
 
 parser = argparse.ArgumentParser(description='Process some integers.')
-parser.add_argument('-r', '--reset', action='store_true', 
+parser.add_argument('-r', '--reset', action='store_true',  default=False,
                     help='rewrite host_file with currently active nodes')
-parser.set_defaults(reset=False)
+parser.add_argument('-h', '--hostfile', action='store', default="./host_file",
+                    help='change which hostfile is used')
+parser.add_argument('-v', '--verbose', action='store_true',
+                    help='print verbose output')
 args = parser.parse_args()
 
-#Compile the application.
-ls > ligandlist ./Ligand
-mkdir -p Output
-mkdir -p ProcessedLigand
-make
+def verbose_print(string){
+    if(args.verbose)
+        print(string)
+}
 
-STATE="plm_rsh_no_tree_spawn 1"
-HOST=host_file
-#Run the application.
-echo "MPI-Vina is running..."
-/usr/lib64/openmpi/bin/mpirun --mca ${STATE} -hostfile $HOST mpiVINA > Output/MpiVina.log
-echo "Processing has finished"
-echo "See the MpiVina.log file."
-
-#Result analysis.
-echo "Analysizing the results..."
-cd Output
-grep "  1 " *.txt | cut -c1-12,35-42 > result 
-#grep "  1 " *.txt | cut -c1-7,30-35 > result
-echo "See the 'result' file in the 'Output' directory."
-#cat result
-
-echo "Sorting the results..."
-sort -n +1 -2 result -o SortedResult
-echo "See the 'SortedResult' file in the 'Output' directory."
-#cat SortedResult
 def rewrite_lab_state(num_nodes):
     good_nodes = list()
     for i in range(10, 9 + num_nodes):
@@ -54,9 +36,9 @@ def rewrite_lab_state(num_nodes):
     if hoster in good_nodes:
         good_nodes.remove(hoster)
     good_nodes.insert(0, hoster)
-    with open('host_file', 'w') as hosts:
+    with open(args.hostfile, 'w') as hosts:
         for node in good_nodes:
-            hosts.write(node + " slots=6 max-slots=6" + '\n')
+            hosts.write(node + " slots=2" + '\n')
     return good_nodes
 
 def main():
@@ -72,6 +54,38 @@ def main():
         for n in alive:
             print(n)
 
+    subprocess.check_output(['ls', '>', 'ligandlist', './Ligand'])
 
+    os.mkdirs(path="./Output", exist_ok=True)
+    os.mkdirs(path="./ProcessedLigand", exist_ok=True)
+
+    os.system("make")
+
+    mpi_source = "/usr/lib64/openmpi/bin/mpirun "
+    mpi_args = "--mca plm_rsh_no_tree_spawn 1"
+    mpi_args += " -np " + num_nodes
+    mpi_args += " --bynode "
+    mpi_args += " -hostfile " + args.hostfile
+    mpi_out = " mpiVINA > Output/MpiVina.log"
+
+    verbose_print(mpi_source + mpi_args + mpi_out)
+
+    print("MPI-Vina is running...")
+
+    os.system(mpi_source + mpi_args + mpi_out)
+
+    print("Processing has finished")
+    print("See the MpiVina.log file.")
+
+    #Result analysis.
+    print("Analysizing the results...")
+
+    os.chdir("Output")
+    os.system("grep "  1 " *.txt | cut -c1-12,35-42 > result ")
+
+    print("See the 'result' file in the 'Output' directory.")
+    print("Sorting the results...")
+    os.system("sort -n +1 -2 result -o SortedResult")
+    print("See the 'SortedResult' file in the 'Output' directory.")
 
 main()
