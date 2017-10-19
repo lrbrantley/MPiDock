@@ -1,23 +1,23 @@
 #!/bin/python3
-from os import system 
+from os import system, makedirs, chdir
 import subprocess
 import sys
 import argparse
 
 
-parser = argparse.ArgumentParser(description='Process some integers.')
+parser = argparse.ArgumentParser(description='Launch MPI-VINA across Lab 127 cluster')
 parser.add_argument('-r', '--reset', action='store_true',  default=False,
                     help='rewrite host_file with currently active nodes')
-parser.add_argument('-h', '--hostfile', action='store', default="./host_file",
+parser.add_argument('--hostfile', action='store', default="./host_file",
                     help='change which hostfile is used')
 parser.add_argument('-v', '--verbose', action='store_true',
                     help='print verbose output')
 args = parser.parse_args()
 
-def verbose_print(string){
-    if(args.verbose)
+def verbose_print(string):
+    if args.verbose:
         print(string)
-}
+
 
 def rewrite_lab_state(num_nodes):
     good_nodes = list()
@@ -54,17 +54,17 @@ def main():
         for n in alive:
             print(n)
 
-    subprocess.check_output(['ls', '>', 'ligandlist', './Ligand'])
+    system("ls > ligandlist ./Ligand")
 
-    os.mkdirs(path="./Output", exist_ok=True)
-    os.mkdirs(path="./ProcessedLigand", exist_ok=True)
+    makedirs(name="./Output", exist_ok=True)
+    makedirs(name="./ProcessedLigand", exist_ok=True)
 
-    os.system("make")
+    system("make")
 
     mpi_source = "/usr/lib64/openmpi/bin/mpirun "
     mpi_args = "--mca plm_rsh_no_tree_spawn 1"
-    mpi_args += " -np " + num_nodes
-    mpi_args += " --bynode "
+    mpi_args += " -np " + str(num_nodes)
+    mpi_args += " --map-by node "
     mpi_args += " -hostfile " + args.hostfile
     mpi_out = " mpiVINA > Output/MpiVina.log"
 
@@ -72,7 +72,7 @@ def main():
 
     print("MPI-Vina is running...")
 
-    os.system(mpi_source + mpi_args + mpi_out)
+    system(mpi_source + mpi_args + mpi_out)
 
     print("Processing has finished")
     print("See the MpiVina.log file.")
@@ -80,12 +80,12 @@ def main():
     #Result analysis.
     print("Analysizing the results...")
 
-    os.chdir("Output")
-    os.system("grep "  1 " *.txt | cut -c1-12,35-42 > result ")
+    chdir("Output")
+    system("grep \"  1 \" *.txt | cut -c1-12,35-42 > result ")
 
     print("See the 'result' file in the 'Output' directory.")
     print("Sorting the results...")
-    os.system("sort -n +1 -2 result -o SortedResult")
+    system("sort -n +1 -2 result -o SortedResult")
     print("See the 'SortedResult' file in the 'Output' directory.")
 
 main()
