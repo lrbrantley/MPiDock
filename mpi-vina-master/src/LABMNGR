@@ -12,9 +12,9 @@ parser.set_defaults(reset=False)
 args = parser.parse_args()
 
 
-def rewrite_lab_state():
+def rewrite_lab_state(num_nodes):
     good_nodes = list()
-    for i in range(10, 37):
+    for i in range(10, 9 + num_nodes):
         cmd = "127x" + str(i) + ".csc.calpoly.edu"
         val = 0
         try:
@@ -31,15 +31,22 @@ def rewrite_lab_state():
     good_nodes.insert(0, hoster)
     with open('host_file', 'w') as hosts:
         for node in good_nodes:
-            hosts.write(node + '\n')
+            hosts.write(node + " slots=6 max-slots=6" + '\n')
     return good_nodes
 
+def main():
+    print ("This is a Lab 127 Impromptu Cluster Creator/Manager")
+    num_nodes = 0
+    while( num_nodes < 1 or num_nodes > 26 ):
+        inputs = input ("Enter the number of machines you wish to use (1 to 26): ")
+        num_nodes = int(inputs)
 
-print ("This is a Lab 127 Impromptu Cluster Creator/Manager")
-nodes = 0
-while( nodes < 1 or nodes > 36 ):
-    inputs = input ("Enter the number of machine you wish to use (1 to 36): ")
-    nodes = int(inputs)
+    if args.reset:
+        alive = rewrite_lab_state(num_nodes)
+        print("Using Nodes:");
+        for n in alive:
+            print(n)
 
-if args.reset:
-    print( rewrite_lab_state() )
+
+
+main()

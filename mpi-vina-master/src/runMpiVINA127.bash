@@ -11,7 +11,7 @@ STATE="plm_rsh_no_tree_spawn 1"
 HOST=host_file
 #Run the application.
 echo "MPI-Vina is running..."
-/usr/lib64/openmpi/bin/mpirun --mca ${STATE} -hostfile $HOST -np 4 mpiVINA > Output/MpiVina.log
+/usr/lib64/openmpi/bin/mpirun --mca ${STATE} -hostfile $HOST mpiVINA > Output/MpiVina.log
 echo "Processing has finished"
 echo "See the MpiVina.log file."
 
