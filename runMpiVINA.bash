@@ -23,15 +23,16 @@ echo "See the MpiVina.log file."
 echo "Analysizing the results..."
 cd Output
 for f in inh*.txt; do
-   grep -H "  1" $f | # grab top result with file name.
-   awk '{print $1" "$3}' | # get first col (name) and third col (energy)
-   sed 's/://' # remove colon from file name
-   >> unsorted.txt
-#grep "  1 " *.txt | cut -c1-7,30-35 > result
-echo "See the 'result' file in the 'Output' directory."
-#cat result
+   ligand='basename $f .txt';         # inhibitor ligand name from file.
+   topRes='sed -n '25p' $f';          # grab top result from log file.
+   zincId=$(grep "Name" $ligand.pdb | # grab Zinc Name row(s) from output file.
+            head -1 |                 # reduce to single row
+            awk '{print $4}');        # get ZINC name.
+   echo "$ligand\t$topRes\t$zincId" >> summary.txt;  # Output to summary file.
+done
+echo "See the 'summary.txt' file in the 'Output' directory."
 
 echo "Sorting the results..."
-sort -n +1 -2 result -o SortedResult
+sort -n -k 3 summary.txt -o Summary_Final.txt # Sort by binding energy
 echo "See the 'SortedResult' file in the 'Output' directory."
 #cat SortedResult
