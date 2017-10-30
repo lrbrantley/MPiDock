@@ -95,8 +95,9 @@ int main(int argc, char *argv[])
 
 void mpiVinaManager(int numProcs)
 {
-   int i;
+   int i, s_idx = 1;
    MPI_Status mStatus;
+   MPI_Request rStatus;
    Ligand *currLigand = NULL;
    printf("Manager has started.\n");
    currLigand = lgndsList.head;    //Begin with first ligand.
@@ -105,14 +106,19 @@ void mpiVinaManager(int numProcs)
    }
    while (currLigand != NULL)
    {
-      printf("Waiting For Work Request\n");
+      printf("Waiting For Work Request From %d\n", s_idx);
       //Wait for receiving work item request from any worker.
       MPI_Recv(NULL, 0, MPI_INT, MPI_ANY_SOURCE, WORK_REQ_TAG, MPI_COMM_WORLD, &mStatus);
-      printf("Recieved Work Request\n");
-      //Assign an work item to the requested worker.
-      MPI_Send(currLigand->ligandName, 1, MPI_LIGAND, mStatus.MPI_SOURCE, COMPUTE_TAG, MPI_COMM_WORLD);
-      printf("Assigned Work\n");
+      printf("Recieved Work Request from %d\n", mStatus.MPI_SOURCE);
+      //Assign an work item to the requested worker. 
+      MPI_Send(currLigand->ligandName, 1, MPI_LIGAND, 
+                  mStatus.MPI_SOURCE, COMPUTE_TAG, MPI_COMM_WORLD);
+
+      printf("Fufilled  Work Request From %d\n", mStatus.MPI_SOURCE);
       currLigand = currLigand->next;    //Go ahead of the list.
+      s_idx = (s_idx + 1 )% numProcs - 1;
+      if (!s_idx)
+         s_idx ++;
    }
 
    //Computation has done. Send termination tag to all the slaves.
@@ -127,12 +133,13 @@ void mpiVinaManager(int numProcs)
 void mpiVinaWorker(int workerId)
 {
    MPI_Status wStatus;
+   MPI_Request rStatus;
    char lignadName[MAX_LIGAND_NAME_LENGTH];
    int error_code = 0;
    printf("Worker %d has started.\n", workerId);
-   fflush(stdout);
+
    //Initial request to manager for assigning work item.
-   error_code = MPI_Isend(NULL, 0, MPI_INT, 0, WORK_REQ_TAG, MPI_COMM_WORLD);
+   error_code = MPI_Isend(NULL, 0, MPI_INT, 0, WORK_REQ_TAG, MPI_COMM_WORLD, &rStatus);
    if (error_code != MPI_SUCCESS) {
       char error_string[BUFSIZ];
       int length_of_error_string;
@@ -140,14 +147,12 @@ void mpiVinaWorker(int workerId)
       fprintf(stderr, "%3d: %s\n", workerId, error_string);
    }
    printf("Worker %d sent work request.\n", workerId);
-   error_code = MPI_Recv(lignadName, 1, MPI_LIGAND, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &wStatus);
-   if (error_code != MPI_SUCCESS) {
-      char error_string[BUFSIZ];
-      int length_of_error_string;
-      MPI_Error_string(error_code, error_string, &length_of_error_string);
-      fprintf(stderr, "%3d: %s\n", workerId, error_string);
-   }
-   printf("Has Begun Computing\n");
+
+   MPI_Wait(&rStatus, &wStatus);
+   printf("Master got work request.\n");
+   
+   MPI_Recv(lignadName, 1, MPI_LIGAND, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &wStatus);
+
    while (wStatus.MPI_TAG == COMPUTE_TAG)
    {
       printf("Worker = %d : ligand '%s' is processing...\n", workerId, lignadName);

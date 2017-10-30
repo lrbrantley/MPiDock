@@ -50,6 +50,7 @@ def setup_script():
 	for node in alive_nodes:
 		system("ssh-keygen -R " + node)
 		system("ssh-keyscan -H " + node + " >> ~/.ssh/known_hosts")
+		system("ssh-keyscan -H " + hostname + " >> ~/.ssh/known_hosts")
 		# setup public ssh key login
 		system("ssh-copy-id -i ~/.ssh/id_rsa.pub " + user + "@" + node)
 
@@ -62,9 +63,9 @@ def setup_script():
 
 def rewrite_lab_state(num_nodes):
 	good_nodes = list()
-	for i in range(10, 9 + num_nodes):
+	for i in range(10, 10 + num_nodes):
 		# lab machines 31 and 37 don't have intel mpi installed
-		if i is 31 or i is 37:
+		if i is 31 or i is 37 or i is 13:
 			continue
 		cmd = "127x" + str(i) + ".csc.calpoly.edu"
 		val = 0
@@ -83,7 +84,7 @@ def rewrite_lab_state(num_nodes):
 
 	with open(args.hostfile, 'w') as hosts:
 		for node in good_nodes:
-			hosts.write(node + " slots=2" + '\n')
+			hosts.write(node + " slots=3" + '\n')
 	return good_nodes
 
 def main():
@@ -108,23 +109,26 @@ def main():
 	makedirs(name="./Output", exist_ok=True)
 	makedirs(name="./ProcessedLigand", exist_ok=True)
 
-	system("make")
+	mpi_exec = " mpiVINA"
+	system("make" + mpi_exec)
 
 	mpi_source = "mpiexec "
+	mpi_args = ""
 	#mpi_args = "--mca plm_rsh_no_tree_spawn 1"
-	mpi_args += "--prefix /usr/lib64/openmpi/"
-	mpi_args += " --map-by ppr:1:node" 
+	#mpi_args += " --mca btl_base_verbose 30"
+	mpi_args += " --prefix /usr/lib64/openmpi/"
+	mpi_args += " --map-by ppr:3:node" 
 	mpi_args += " -display-map"
 	mpi_args += " -hostfile " + args.hostfile
 	if args.test:
 		mpi_out = " mpi_hello_world"
 	else:
 		if args.verbose:
-			mpi_out = " mpiVINA | tee Output/MpiVina.log"
+			mpi_out = mpi_exec + " | tee Output/MpiVina.log"
 		else:
-			mpi_out = " mpiVINA > Output/MpiVina.log"
+			mpi_out = mpi_exec + " > Output/MpiVina.log"
 
-	verbose_print(mpi_source + mpi_args + mpi_out)
+	print(mpi_source + mpi_args + mpi_out)
 
 	print("MPI-Vina is running...")
 	
