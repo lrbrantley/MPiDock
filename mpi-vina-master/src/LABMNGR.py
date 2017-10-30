@@ -12,6 +12,8 @@ parser.add_argument('--hostfile', action='store', default="./host_file",
                     help='change which hostfile is used')
 parser.add_argument('-v', '--verbose', action='store_true',
                     help='print verbose output')
+parser.add_argument('-t', '--test', action='store_true',
+                    help='launch test application to verify mpi connections')
 args = parser.parse_args()
 
 def verbose_print(string):
@@ -66,12 +68,18 @@ def main():
     mpi_args += " -np " + str(num_nodes)
     mpi_args += " --map-by node "
     mpi_args += " -hostfile " + args.hostfile
-    mpi_out = " mpiVINA > Output/MpiVina.log"
+    if args.test:
+    	mpi_out = " mpi_hello_world"
+    else:
+    	if args.verbose:
+    		mpi_out = " mpiVINA | tee Output/MpiVina.log"
+    	else:
+    		mpi_out = " mpiVINA > Output/MpiVina.log"
 
     verbose_print(mpi_source + mpi_args + mpi_out)
 
     print("MPI-Vina is running...")
-
+    
     system(mpi_source + mpi_args + mpi_out)
 
     print("Processing has finished")
