@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_LIGAND_NAME_LENGTH 25
+#define MAX_LIGAND_NAME_LENGTH 100
 
 struct ligand {
     char ligandName[MAX_LIGAND_NAME_LENGTH];

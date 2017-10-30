@@ -1,11 +1,17 @@
 #!/bin/bash
 #
 #SBATCH -N 1
-#SBATCH -n 8
+#SBATCH -n 4
 #SBATCH -c 6
 #SBATCH -t 3-00:00:00
 #SBATCH -o testrun.out
 #SBATCH -e testrun.err
+
+#Copy over and Ensure all inh_ files don't have unusable things.
+cd Ligand
+for f in ligand*.pdbqt; do mv $f inh_$f; done
+for f in inh*.pdbqt; do sed -i '/USER/d' $f; sed -i '/TER/d' $f; done
+cd ..
 
 #Compile the application.
 ls ./Ligand > ligandlist
@@ -22,13 +28,18 @@ echo "See the MpiVina.log file."
 #Result analysis.
 echo "Analysizing the results..."
 cd Output
+for f in *.pdbqt; do
+   cut -c-66 "$f" > "${f%.pdbqt}_OUTPUT.pdb"; # cut first 66 chars and write to file.
+done
 for f in inh*.txt; do
-   ligand='basename $f .txt';         # inhibitor ligand name from file.
-   topRes='sed -n '25p' $f';          # grab top result from log file.
-   zincId=$(grep "Name" $ligand.pdb | # grab Zinc Name row(s) from output file.
-            head -1 |                 # reduce to single row
-            awk '{print $4}');        # get ZINC name.
-   echo "$ligand\t$topRes\t$zincId" >> summary.txt;  # Output to summary file.
+   ligand=$(basename $f .txt);                   # inhibitor ligand name from file.
+   topRes=$(sed -n '25p' $f |                    # grab top result row from log file.
+            awk '{print $2}');                   # extract energy value from row.
+   zincId=$(grep "Name" "${ligand%.pdbqt}_OUTPUT.pdb" | # grab Zinc Name row(s) from output file.
+            head -1 |                            # reduce to single row
+            awk '{print $4}');        	         # get ZINC name.
+   echo -e "$ligand\t$topRes\t$zincId" >> summary.txt;  # Output to summary file.
+   mv "$f" "${f%.pdbqt.txt}.txt";       # Change log files to *.txt files.
 done
 echo "See the 'summary.txt' file in the 'Output' directory."
 
