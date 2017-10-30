@@ -140,7 +140,7 @@ void mpiVinaWorker(int workerId)
       strcat(vinaCmd, lignadName);
       strcat(vinaCmd, " --out Output/");
       strcat(vinaCmd, lignadName);
-      strcat(vinaCmd, ".pdbqt --log Output/");
+      strcat(vinaCmd, " --log Output/");
       strcat(vinaCmd, lignadName);
       strcat(vinaCmd, ".txt > /dev/null");
       //Ask Autodock Vina to perform molecular docking.
