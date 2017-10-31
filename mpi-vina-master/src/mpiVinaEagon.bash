@@ -44,6 +44,6 @@ done
 echo "See the 'summary.txt' file in the 'Output' directory."
 
 echo "Sorting the results..."
-sort -n -k 3 summary.txt -o Summary_Final.txt # Sort by binding energy
+sort -n -k 2 summary.txt -o Summary_Final.txt # Sort by binding energy
 echo "See the 'SortedResult' file in the 'Output' directory."
 #cat SortedResult
