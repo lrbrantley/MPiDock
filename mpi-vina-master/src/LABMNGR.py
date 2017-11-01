@@ -63,18 +63,22 @@ def setup_script():
 
 def rewrite_lab_state(num_nodes):
 	good_nodes = list()
-	for i in range(10, 10 + num_nodes):
+	i = 10
+	while(i - 10 != num_nodes and i < 38):
 		# lab machines 31 and 37 don't have intel mpi installed
 		if i is 31 or i is 37 or i is 13:
+			i = i + 1
 			continue
 		cmd = "127x" + str(i) + ".csc.calpoly.edu"
 		val = 0
 		try:
 			val = subprocess.check_output(['ping', '-c 1', cmd])
 		except subprocess.CalledProcessError as e:
+			i = i + 1
 			continue
 		if val is not 0:
 			good_nodes.append(cmd)
+		i = i + 1
 	hoster = subprocess.check_output(['hostname'])
 	hoster = str(hoster, 'utf-8')
 	hoster = hoster.rstrip('\n')
@@ -109,15 +113,15 @@ def main():
 	makedirs(name="./Output", exist_ok=True)
 	makedirs(name="./ProcessedLigand", exist_ok=True)
 
-	mpi_exec = " mpiVINA"
+	mpi_exec = " mpiVINAv3"
 	system("make" + mpi_exec)
 
 	mpi_source = "mpiexec "
 	mpi_args = ""
-	#mpi_args = "--mca plm_rsh_no_tree_spawn 1"
+	mpi_args = "--mca plm_rsh_no_tree_spawn 1"
 	#mpi_args += " --mca btl_base_verbose 30"
 	mpi_args += " --prefix /usr/lib64/openmpi/"
-	mpi_args += " --map-by ppr:3:node" 
+	mpi_args += " --map-by ppr:2:node" 
 	mpi_args += " -display-map"
 	mpi_args += " -hostfile " + args.hostfile
 	if args.test:

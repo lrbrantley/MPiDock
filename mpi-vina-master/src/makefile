@@ -7,10 +7,10 @@
 mpiVINA: mpiVINAv2.o CLinkedList.o
 	mpicc -o $@ mpiVINAv2.o CLinkedList.o -lmpi
 	
-mpiVINAv3: mpiVINAv3.o CLinkedList.o
+mpiVINAv3: mpiVINAv3.o CVector.o
 	mpicc -o $@ $^ -lmpi
 
-mpiVINAv3.o: mpiVINAv3.c CLinkedList.h
+mpiVINAv3.o: mpiVINAv3.c CVector.h
 	mpicc -c mpiVINAv3.c
 
 mpiVINAv2.o: mpiVINAv2.c CLinkedList.h
@@ -18,6 +18,9 @@ mpiVINAv2.o: mpiVINAv2.c CLinkedList.h
 	
 CLinkedList.o: CLinkedList.c CLinkedList.h
 	mpicc -c CLinkedList.c 
+
+CVector.o: CVector.c CVector.h
+	mpicc -c CVector.c
 	
 reset:
 	rm ./Output/*; mv ./ProcessedLigand/* ./Ligand/
