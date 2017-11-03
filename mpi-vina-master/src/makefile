@@ -3,15 +3,18 @@
 # Username  : x2013idf
 # Course    : CSCI 522
 # Purpose   : makefile in order to ease the compilation procedure.
+CC	= mpic++
+CCFLAGS	= -std=c++11 -pedantic -Wall -O3
+LDFLAGS	= -lmpi
 
 mpiVINA: mpiVINAv2.o CLinkedList.o
 	mpicc -o $@ mpiVINAv2.o CLinkedList.o -lmpi
 	
-mpiVINAv3: mpiVINAv3.o CVector.o
-	mpicc -o $@ $^ -lmpi
+mpiVINAv3: mpiVINAv3.o
+	$(CC) -o $@ $^ 
 
-mpiVINAv3.o: mpiVINAv3.c CVector.h
-	mpicc -c mpiVINAv3.c
+mpiVINAv3.o: mpiVINAv3.cpp
+	mpic++ -c $(CCFLAGS) mpiVINAv3.cpp $(LDFLAGS)
 
 mpiVINAv2.o: mpiVINAv2.c CLinkedList.h
 	mpicc -c mpiVINAv2.c
@@ -19,9 +22,6 @@ mpiVINAv2.o: mpiVINAv2.c CLinkedList.h
 CLinkedList.o: CLinkedList.c CLinkedList.h
 	mpicc -c CLinkedList.c 
 
-CVector.o: CVector.c CVector.h
-	mpicc -c CVector.c
-	
 reset:
 	rm ./Output/*; mv ./ProcessedLigand/* ./Ligand/
 clean:

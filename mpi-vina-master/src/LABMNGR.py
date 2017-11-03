@@ -13,6 +13,8 @@ parser.add_argument('-v', '--verbose', action='store_true',
 					help='print verbose output')
 parser.add_argument('-t', '--test', action='store_true',
 					help='launch test application to verify mpi connections')
+parser.add_argument('-n', '--nodes', nargs='+',
+					help='hardcode which nodes to run on (e.g. -n 8 9 14 3')
 args = parser.parse_args()
 
 def verbose_print(string):
@@ -60,7 +62,29 @@ def setup_script():
 
 	verbose_print("Setup Complete")
 
+def hardcode_lab_state(nodes):
+	good_nodes = list()
+	for n in nodes:
+		cmd = "127x" + str(n) + ".csc.calpoly.edu"
+		val = 0
+		try:
+			val = subprocess.check_output(['ping', '-c 1', cmd])
+		except subprocess.CalledProcessError as e:
+			continue
+		if val is not 0:
+			good_nodes.append(cmd)
+	hoster = subprocess.check_output(['hostname'])
+	hoster = str(hoster, 'utf-8')
+	hoster = hoster.rstrip('\n')
+	if hoster in good_nodes:
+		good_nodes.remove(hoster)
+	good_nodes.insert(0, hoster)
 
+	with open(args.hostfile, 'w') as hosts:
+		for node in good_nodes:
+			hosts.write(node + " slots=2" + '\n')
+	return good_nodes
+	
 def rewrite_lab_state(num_nodes):
 	good_nodes = list()
 	i = 10
@@ -88,7 +112,7 @@ def rewrite_lab_state(num_nodes):
 
 	with open(args.hostfile, 'w') as hosts:
 		for node in good_nodes:
-			hosts.write(node + " slots=3" + '\n')
+			hosts.write(node + " slots=2" + '\n')
 	return good_nodes
 
 def main():
@@ -99,13 +123,18 @@ def main():
 	if inital is 'y':
 		setup_script()
 
-	num_nodes = 0
-	while( num_nodes < 1 or num_nodes > 26 ):
-		inputs = input ("Enter the number of machines you wish to use (1 to 26): ")
-		num_nodes = int(inputs)
+	if args.nodes:
+		alive = hardcode_lab_state(args.nodes)
+	else:
+		num_nodes = 0
+		while( num_nodes < 1 or num_nodes > 26 ):
+			inputs = input ("Enter the number of machines you wish to use (1 to 26): ")
+			num_nodes = int(inputs)
 
+		
+		alive = rewrite_lab_state(num_nodes)
+	
 	print("Using Nodes:");
-	alive = rewrite_lab_state(num_nodes)
 	for n in alive:	print(n)
 
 	system("ls > ligandlist ./Ligand")
@@ -122,7 +151,7 @@ def main():
 	#mpi_args += " --mca btl_base_verbose 30"
 	mpi_args += " --prefix /usr/lib64/openmpi/"
 	mpi_args += " --map-by ppr:2:node" 
-	mpi_args += " -display-map"
+	#mpi_args += " -display-map"
 	mpi_args += " -hostfile " + args.hostfile
 	if args.test:
 		mpi_out = " mpi_hello_world"
