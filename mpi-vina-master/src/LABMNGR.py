@@ -2,6 +2,7 @@
 from os import system, makedirs, chdir, path
 import subprocess
 import sys
+import glob
 import argparse
 import platform
 
@@ -115,6 +116,29 @@ def rewrite_lab_state(num_nodes):
 			hosts.write(node + " slots=2" + '\n')
 	return good_nodes
 
+def preprocess_ligands():
+
+	chdir("Ligand")
+
+	system("./preprocess.bash")
+
+	system("ls > ligandlist ./Ligand")
+
+	makedirs(name="./Output", exist_ok=True)
+	makedirs(name="./ProcessedLigand", exist_ok=True)
+
+def postprocess_ligands():
+	#Result analysis.
+	print("Analysizing the results...")
+
+	chdir("Output")
+	system("grep \"  1 \" *.txt | cut -c1-12,35-42 > result ")
+
+	print("See the 'result' file in the 'Output' directory.")
+	print("Sorting the results...")
+	system("sort -n +1 -2 result -o SortedResult")
+	print("See the 'SortedResult' file in the 'Output' directory.")
+
 def main():
 	print ("This is a Lab 127 Impromptu Cluster Creator/Manager")
 	inital = '~'
@@ -137,10 +161,7 @@ def main():
 	print("Using Nodes:");
 	for n in alive:	print(n)
 
-	system("ls > ligandlist ./Ligand")
-
-	makedirs(name="./Output", exist_ok=True)
-	makedirs(name="./ProcessedLigand", exist_ok=True)
+	preprocess_ligands()
 
 	mpi_exec = " mpiVINAv3"
 	system("make" + mpi_exec)
@@ -170,15 +191,7 @@ def main():
 	print("Processing has finished")
 	print("See the MpiVina.log file.")
 
-	#Result analysis.
-	print("Analysizing the results...")
-
-	chdir("Output")
-	system("grep \"  1 \" *.txt | cut -c1-12,35-42 > result ")
-
-	print("See the 'result' file in the 'Output' directory.")
-	print("Sorting the results...")
-	system("sort -n +1 -2 result -o SortedResult")
-	print("See the 'SortedResult' file in the 'Output' directory.")
+	postprocess_ligands()
+	
 
 main()
