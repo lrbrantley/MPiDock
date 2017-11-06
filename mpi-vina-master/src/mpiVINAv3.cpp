@@ -113,18 +113,24 @@ void mpiVinaWorker(int workerId, int numProcs) {
         end = (start)? start+1 : 0;
     }
     else{
-        nops =  list_len / numProcs;
+        nops =  (list_len / numProcs) + 1;
         rem = list_len % numProcs;
-        start = workerId * nops;
-        end = start + nops;
+        if(workerId >= rem){
+            start = workerId * nops - (workerId - rem);
+            end = start + nops - 1;
+        }
+        else{
+            start = workerId * nops;
+            end = start + nops;
+        }
         //If the last node in cluster finish remainder
-        if((list_len - end) <= rem) end = list_len;
+        //if((list_len - end) <= rem) end = list_len;
     }
 
     if (!end) return;
 
     printf("Worker %d of %d has started on %d to %d.\n", 
-            workerId, numProcs - 1, start, end - 1);
+            workerId, numProcs, start, end - 1);
     sleep(1);
     for(i = start; i < end; i++) {
         ligandName = lgndsList[i];
@@ -135,7 +141,7 @@ void mpiVinaWorker(int workerId, int numProcs) {
         vinaCmd.append(ligandName);
         vinaCmd.append(" --out " + outputDir + "/");
         vinaCmd.append(ligandName);
-        vinaCmd.append(".pdbqt --log " + outputDir + "/");
+        vinaCmd.append(" --log " + outputDir + "/");
         vinaCmd.append(ligandName);
         vinaCmd.append(".txt > /dev/null");
         //Ask Autodock Vina to perform molecular docking.

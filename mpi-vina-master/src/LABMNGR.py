@@ -136,7 +136,10 @@ def postprocess_ligands():
 	print("Analysizing the results...")
 
 	chdir(args.output)
-	system("grep \"  1 \" *.txt | cut -c1-12,35-42 > result ")
+	
+	for file in glob.glob('*.pdbqt'):
+		cmd = "cut -c-66 "+file+" > "+path.basename(file)+"_OUTPUT.pdb"
+		system(cmd)
 
 	print("See the 'result' file in the", "'" +args.output+"' directory.")
 	print("Sorting the results...")
