@@ -31,6 +31,7 @@ void mpiVinaWorker (int workerId, int numProcs);
 
 MPI_Datatype MPI_LIGAND;
 std::vector<std::string> lgndsList;
+std::string ligandDir, outputDir, processedDir;
 
 int main(int argc, char *argv[]) {
     int numProcs, rank, totalLigands;
@@ -45,6 +46,10 @@ int main(int argc, char *argv[]) {
     MPI_Type_contiguous(MAX_LIGAND_NAME_LENGTH, MPI_CHAR, &MPI_LIGAND);
     MPI_Type_commit(&MPI_LIGAND);
 
+    std::vector<std::string> allArgs(argv, argv + argc);
+    ligandDir = allArgs[1];
+    outputDir = allArgs[2];
+    processedDir = allArgs[3];
 
     // All processors will read the ligandlist file and will make the work pool.
     if(rank == MASTER)
@@ -102,7 +107,7 @@ void mpiVinaManager(int numProcs) {
 
 void mpiVinaWorker(int workerId, int numProcs) {
     
-    char lignadName[MAX_LIGAND_NAME_LENGTH];
+    char ligandName[MAX_LIGAND_NAME_LENGTH];
     int nops, start, end, rem, list_len, i;
 
     list_len = lgndsList.size();
@@ -117,26 +122,26 @@ void mpiVinaWorker(int workerId, int numProcs) {
             workerId, numProcs - 1, start, end - 1);
     sleep(1);
     for(i = start; i < end; i++) {
-        strncpy(lignadName, lgndsList[i].c_str(), MAX_LIGAND_NAME_LENGTH);
-        printf("Worker = %d : ligand '%s' is processing...\n", workerId, lignadName);
+        strncpy(ligandName, lgndsList[i].c_str(), MAX_LIGAND_NAME_LENGTH);
+        printf("Worker = %d : ligand '%s' is processing...\n", workerId, ligandName);
         fflush(stdout);
 
-        char vinaCmd[500] = "Vina/vina --config Vina/conf.txt --ligand ./Ligand/";
-        strcat(vinaCmd, lignadName);
-        strcat(vinaCmd, " --out Output/");
-        strcat(vinaCmd, lignadName);
-        strcat(vinaCmd, ".pdbqt --log Output/");
-        strcat(vinaCmd, lignadName);
-        strcat(vinaCmd, ".txt > /dev/null");
+        std::string vinaCmd = "Vina/vina --config Vina/conf.txt --ligand " + ligandDir + "/";
+        vinaCmd.append(ligandName);
+        vinaCmd.append(" --out " + outputDir + "/");
+        vinaCmd.append(ligandName);
+        vinaCmd.append(".pdbqt --log " + outputDir + "/");
+        vinaCmd.append(ligandName);
+        vinaCmd.append(".txt > /dev/null");
         //Ask Autodock Vina to perform molecular docking.
-        system(vinaCmd);
+        system(vinaCmd.c_str());
 
-        vinaCmd[0] = '\0';
-        strcat(vinaCmd, "mv  Ligand/");
-        strcat(vinaCmd, lignadName);
-        strcat(vinaCmd, " ProcessedLigand/");
+        vinaCmd.clear();
+        vinaCmd.append("mv " + ligandDir + "/");
+        vinaCmd.append(ligandName);
+        vinaCmd.append(" " + processedDir + "/");
         //Move processed ligands to ProcessedLigand directory.
-        system(vinaCmd);
+        system(vinaCmd.c_str());
     }
 
     printf("Worker %d has terminated.\n", workerId);

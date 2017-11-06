@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 from os import system, makedirs, chdir, path
 import subprocess
 import sys
@@ -9,13 +9,20 @@ import platform
 
 parser = argparse.ArgumentParser(description='Launch MPI-VINA across Lab 127 cluster')
 parser.add_argument('--hostfile', action='store', default="./host_file",
-					help='change which hostfile is used')
+					help='Override default hostfile')
 parser.add_argument('-v', '--verbose', action='store_true',
 					help='print verbose output')
 parser.add_argument('-t', '--test', action='store_true',
 					help='launch test application to verify mpi connections')
 parser.add_argument('-n', '--nodes', nargs='+',
-					help='hardcode which nodes to run on (e.g. -n 8 9 14 3')
+					help='hardcode which nodes to run on (e.g. -n 8 9 14 3)')
+parser.add_argument('-l', '--ligand', action='store', default="./Ligand",
+					help="Override Ligand Directory")
+parser.add_argument('-o', '--output', action='store', default="./Output",
+					help="Override Output Directory")
+parser.add_argument('-p', '--processed', action='store', default="./ProcessedLigand",
+					help="Override Processed Ligand Directory")
+
 args = parser.parse_args()
 
 def verbose_print(string):
@@ -118,26 +125,23 @@ def rewrite_lab_state(num_nodes):
 
 def preprocess_ligands():
 
-	chdir("Ligand")
+	system("./preprocess.bash " + args.ligand)
+	system("ls > ligandlist " + args.ligand)
 
-	system("./preprocess.bash")
-
-	system("ls > ligandlist ./Ligand")
-
-	makedirs(name="./Output", exist_ok=True)
-	makedirs(name="./ProcessedLigand", exist_ok=True)
+	makedirs(name=args.output, exist_ok=True)
+	makedirs(name=args.processed, exist_ok=True)
 
 def postprocess_ligands():
 	#Result analysis.
 	print("Analysizing the results...")
 
-	chdir("Output")
+	chdir(args.output)
 	system("grep \"  1 \" *.txt | cut -c1-12,35-42 > result ")
 
-	print("See the 'result' file in the 'Output' directory.")
+	print("See the 'result' file in the", "'" +args.output+"' directory.")
 	print("Sorting the results...")
 	system("sort -n +1 -2 result -o SortedResult")
-	print("See the 'SortedResult' file in the 'Output' directory.")
+	print("See the 'SortedResult' file in the", "'"+args.output+"' directory.")
 
 def main():
 	print ("This is a Lab 127 Impromptu Cluster Creator/Manager")
@@ -174,13 +178,14 @@ def main():
 	mpi_args += " --map-by ppr:2:node" 
 	#mpi_args += " -display-map"
 	mpi_args += " -hostfile " + args.hostfile
+	exec_args = " " + args.ligand + " " + args.output + " " + args.processed
 	if args.test:
 		mpi_out = " mpi_hello_world"
 	else:
 		if args.verbose:
-			mpi_out = mpi_exec + " | tee Output/MpiVina.log"
+			mpi_out = mpi_exec + exec_args + " | tee " + args.output + "/MpiVina.log"
 		else:
-			mpi_out = mpi_exec + " > Output/MpiVina.log"
+			mpi_out = mpi_exec + exec_args + " > " + args.output + "/MpiVina.log"
 
 	print(mpi_source + mpi_args + mpi_out)
 
