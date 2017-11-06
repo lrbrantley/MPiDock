@@ -43,9 +43,6 @@ int main(int argc, char *argv[]) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &numProcs);
 
-    MPI_Type_contiguous(MAX_LIGAND_NAME_LENGTH, MPI_CHAR, &MPI_LIGAND);
-    MPI_Type_commit(&MPI_LIGAND);
-
     std::vector<std::string> allArgs(argv, argv + argc);
     ligandDir = allArgs[1];
     outputDir = allArgs[2];
@@ -66,7 +63,7 @@ int main(int argc, char *argv[]) {
     while (getline(ligandListFile, line)) {
         //Add to the list.
         lgndsList.push_back(line);
-
+        //std::cout << line << std::endl;
     }
     //Get total number of ligands.
     totalLigands = lgndsList.size();
@@ -84,7 +81,6 @@ int main(int argc, char *argv[]) {
         fflush(stdout);
     }
 
-    MPI_Type_free (&MPI_LIGAND);
     MPI_Finalize ( );
     return 0;
 }
@@ -107,23 +103,32 @@ void mpiVinaManager(int numProcs) {
 
 void mpiVinaWorker(int workerId, int numProcs) {
     
-    char ligandName[MAX_LIGAND_NAME_LENGTH];
+    std::string ligandName;
     int nops, start, end, rem, list_len, i;
 
     list_len = lgndsList.size();
-    nops =  list_len / numProcs;
-    rem = list_len % numProcs;
-    start = workerId * nops;
-    end = start + nops;
-    //If the last node in cluster finish remainder
-    if((list_len - end) <= rem) end = list_len;
+    // If the number of ligands > number of nodes
+    if(list_len < numProcs){
+        start = (list_len > workerId)? workerId : 0;
+        end = (start)? start+1 : 0;
+    }
+    else{
+        nops =  list_len / numProcs;
+        rem = list_len % numProcs;
+        start = workerId * nops;
+        end = start + nops;
+        //If the last node in cluster finish remainder
+        if((list_len - end) <= rem) end = list_len;
+    }
+
+    if (!end) return;
 
     printf("Worker %d of %d has started on %d to %d.\n", 
             workerId, numProcs - 1, start, end - 1);
     sleep(1);
     for(i = start; i < end; i++) {
-        strncpy(ligandName, lgndsList[i].c_str(), MAX_LIGAND_NAME_LENGTH);
-        printf("Worker = %d : ligand '%s' is processing...\n", workerId, ligandName);
+        ligandName = lgndsList[i];
+        printf("Worker = %d : ligand '%s' is processing...\n", workerId, ligandName.c_str());
         fflush(stdout);
 
         std::string vinaCmd = "Vina/vina --config Vina/conf.txt --ligand " + ligandDir + "/";
