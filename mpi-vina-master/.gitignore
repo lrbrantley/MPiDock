@@ -1,3 +1,7 @@
+# Folders 
+Output/*
+ProcessedLigand/*
+
 # Object files
 *.o
 *.ko
