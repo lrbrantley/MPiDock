@@ -10,12 +10,14 @@ cleanInputFile ()
 
 #Copy over and Ensure all inh_ files don't have unusable things.
 cd $1
-for f in ligand*.pdbqt; do # Move files in parallel.
-   mv $f inh_$f &
+# Move files in parallel.
+# Semaphore used to limit to 100 parallel processes at a time
+for f in ligand*.pdbqt; do 
+   sem -j100 mv $f inh_$f 
 done
-wait # Join sub processes.
+sem --wait # Join sub processes.
 for f in inh*.pdbqt; do    # Edit files in parallel.
-   cleanInputFile $f &
+   sem -j100 cleanInputFile $f 
 done
-wait # Join sub processes.
+sem --wait # Join sub processes.
 cd ..
