@@ -27,17 +27,17 @@
 #define LIGAND_FILE_NAME        "ligandlist"
 
 void mpiVinaManager (int numProcs);
-void mpiVinaWorker (int workerId, int numProcs);
+void mpiVinaWorker (int workerId, int numProcs, double startTime);
 
 MPI_Datatype MPI_LIGAND;
 std::vector<std::string> lgndsList;
 std::string ligandDir, outputDir, processedDir;
 
 int main(int argc, char *argv[]) {
-    int numProcs, rank, totalLigands;
+    int numProcs, rank;
     std::ifstream ligandListFile;
 
-    double startTime = 0.0, endTime = 0.0;
+    double startTime = 0.0;
 
     MPI_Init (&argc, &argv );
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -63,54 +63,26 @@ int main(int argc, char *argv[]) {
     while (getline(ligandListFile, line)) {
         //Add to the list.
         lgndsList.push_back(line);
-        //std::cout << line << std::endl;
     }
-    //Get total number of ligands.
-    totalLigands = lgndsList.size();
 
-
-    mpiVinaWorker(rank, numProcs);    // All other processors will play the role of mpiVINA worker.
-
-    if (rank == numProcs - 1) {
-        endTime = MPI_Wtime(); // end timer.
-        printf("\n\n..........................................\n");
-        printf("   Number of workers       = %d \n", numProcs);
-        printf("   Number of Ligands       = %u \n", totalLigands);
-        printf("   Total time required     = %.2lf seconds.\n", endTime - startTime);
-        printf("..........................................\n\n");
-        fflush(stdout);
-    }
+    mpiVinaWorker(rank, numProcs, startTime);    
+    // All processors will play the role of mpiVINA worker.
 
     MPI_Finalize ( );
     return 0;
 }
 
-void mpiVinaManager(int numProcs) {
-    int i;
-    printf("Manager has started.\n");
-
-    for (i = 1; i < numProcs; i++) {
-        printf("Ping Worker %d\n", i);
-        MPI_Send(&i, 1, MPI_INT, i, COMPUTE_TAG, MPI_COMM_WORLD);
-    }
-
-    //Computation has done. Send termination tag to all the slaves.
-    for (i = 1; i < numProcs; i++) {
-        MPI_Send(&i, 1, MPI_INT, i, TERMINATE_TAG, MPI_COMM_WORLD);
-    }
-    return;
-}
-
-void mpiVinaWorker(int workerId, int numProcs) {
+void mpiVinaWorker(int workerId, int numProcs, double startTime) {
     
     std::string ligandName;
     int nops, start, end, rem, list_len, i;
+    double endTime = 0.0;
 
     list_len = lgndsList.size();
     // If the number of ligands > number of nodes
     if(list_len < numProcs){
-        start = (list_len > workerId)? workerId : 0;
-        end = (start)? start+1 : 0;
+        start = (list_len > workerId)? workerId : -1;
+        end = (start>=0)? start+1 : -1;
     }
     else{
         nops =  (list_len / numProcs) + 1;
@@ -123,14 +95,17 @@ void mpiVinaWorker(int workerId, int numProcs) {
             start = workerId * nops;
             end = start + nops;
         }
-        //If the last node in cluster finish remainder
-        //if((list_len - end) <= rem) end = list_len;
     }
 
-    if (!end) return;
+    if (end == -1 ){
+        printf("Worker %d not needed, terminated\n", workerId);
+        return;
+    }
 
     printf("Worker %d of %d has started on %d to %d.\n", 
             workerId, numProcs, start, end - 1);
+
+    
     sleep(1);
     for(i = start; i < end; i++) {
         ligandName = lgndsList[i];
@@ -157,6 +132,16 @@ void mpiVinaWorker(int workerId, int numProcs) {
 
     printf("Worker %d has terminated.\n", workerId);
     fflush(stdout);
+
+    if (workerId == MASTER) {
+        endTime = MPI_Wtime(); // end timer.
+        printf("\n\n..........................................\n");
+        printf("   Number of workers       = %d \n", numProcs);
+        printf("   Number of Ligands       = %u \n", list_len);
+        printf("   Total time required     = %.2lf seconds.\n", endTime - startTime);
+        printf("..........................................\n\n");
+        fflush(stdout);
+    }
 
     return;
 }

@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 from os import system, makedirs, chdir, path
+import os
 import subprocess
 import sys
 import glob
 import argparse
+import re
 import platform
 
 
@@ -25,9 +27,9 @@ parser.add_argument('-p', '--processed', action='store', default="./ProcessedLig
 
 args = parser.parse_args()
 
-def verbose_print(string):
+def verbose_print(*largs, **kwargs):
 	if args.verbose:
-		print(string)
+		print(*largs, **kwargs)
 
 
 def setup_script():
@@ -124,7 +126,7 @@ def rewrite_lab_state(num_nodes):
 	return good_nodes
 
 def preprocess_ligands():
-
+	verbose_print("Preprocess " + args.ligand)
 	system("./preprocess.bash " + args.ligand)
 	system("ls > ligandlist " + args.ligand)
 
@@ -135,16 +137,39 @@ def postprocess_ligands():
 	#Result analysis.
 	print("Analysizing the results...")
 
-	chdir(args.output)
+	chdir("./Output")
 	
 	for file in glob.glob('*.pdbqt'):
-		cmd = "cut -c-66 "+file+" > "+path.basename(file)+"_OUTPUT.pdb"
+		cmd = "cut -c-66 "+file+" > "+path.basename(file).split('.')[0]+"_OUTPUT.pdb"
 		system(cmd)
 
-	print("See the 'result' file in the", "'" +args.output+"' directory.")
+	zincId = ""
+	topRes = ""
+	for file in glob.glob('inh*.txt'):
+		ligandName = path.basename(file).split('.')[0]
+		with open(file) as ligandTxt:
+			for i,line in enumerate(ligandTxt):
+				if i == 25:
+					topRes = line.split()[1]
+					break
+		with open(ligandName+"_OUTPUT.pdb") as ligandData:
+			for line in ligandData:
+				res = re.findall(r'Name', line)
+				if res:
+					zincId = line.split()[3]
+					break
+
+		with open('summary.txt', 'a+') as summary:
+			summary.write(ligandName+".pdbqt\t"+topRes+"\t"+zincId+'\n')
+		os.replace(file, ligandName + '.txt')
+				
+
+
+	print("See the 'summary.txt' file in the", "'" +args.output+"' directory.")
 	print("Sorting the results...")
-	system("sort -n +1 -2 result -o SortedResult")
-	print("See the 'SortedResult' file in the", "'"+args.output+"' directory.")
+	system("sort -n -k 2 summary.txt -o Summary_Final.txt")
+	print("See the 'Summary_Final.txt' file in the", "'"+args.output+"' directory.")
+
 
 def main():
 	print ("This is a Lab 127 Impromptu Cluster Creator/Manager")
