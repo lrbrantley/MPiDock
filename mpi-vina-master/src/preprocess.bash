@@ -13,11 +13,11 @@ cd $1
 # Move files in parallel.
 # Semaphore used to limit to 100 parallel processes at a time
 for f in ligand*.pdbqt; do 
-   sem -j100 mv $f inh_$f 
+   mv $f inh_$f &
 done
-sem --wait # Join sub processes.
+wait # Join sub processes.
 for f in inh*.pdbqt; do    # Edit files in parallel.
-   sem -j100 cleanInputFile $f 
+	cleanInputFile $f &
 done
-sem --wait # Join sub processes.
+wait # Join sub processes.
 cd ..
