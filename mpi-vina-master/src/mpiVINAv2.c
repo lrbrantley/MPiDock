@@ -16,7 +16,6 @@
 #define TERMINATE_TAG           22
 #define WORK_REQ_TAG            33
 
-#define MAX_LIGAND_NAME_LENGTH  25
 #define LIGAND_FILE_NAME        "ligandlist"
 
 void mpiVinaManager (int numProcs);
@@ -136,7 +135,7 @@ void mpiVinaWorker(int workerId)
       printf("Worker = %d : ligand '%s' is processing...\n", workerId, lignadName);
       fflush(stdout);
 
-      char vinaCmd[500]="Vina/vina --config Vina/conf.txt --ligand ./Ligand/";
+      char vinaCmd[1000]="Vina/vina --config Vina/conf.txt --ligand ./Ligand/";
       strcat(vinaCmd, lignadName);
       strcat(vinaCmd, " --out Output/");
       strcat(vinaCmd, lignadName);

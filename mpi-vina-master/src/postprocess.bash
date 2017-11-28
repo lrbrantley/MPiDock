@@ -18,9 +18,11 @@ cd $1
 for f in *.pdbqt; do
    cut -c-66 "$f" > "${f%.pdbqt}_OUTPUT.pdb" & # cut first 66 chars and write to file.
 done
+wait
 for f in inh*.txt; do
    grabOutputData $f &
 done
+wait
 echo "See the 'summary.txt' file in the 'Output' directory."
 
 echo "Sorting the results..."
