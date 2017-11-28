@@ -134,42 +134,7 @@ def preprocess_ligands():
 	makedirs(name=args.processed, exist_ok=True)
 
 def postprocess_ligands():
-	#Result analysis.
-	print("Analysizing the results...")
-
-	chdir("./Output")
-	
-	for file in glob.glob('*.pdbqt'):
-		cmd = "cut -c-66 "+file+" > "+path.basename(file).split('.')[0]+"_OUTPUT.pdb"
-		system(cmd)
-
-	zincId = ""
-	topRes = ""
-	for file in glob.glob('inh*.txt'):
-		ligandName = path.basename(file).split('.')[0]
-		with open(file) as ligandTxt:
-			for i,line in enumerate(ligandTxt):
-				if i == 25:
-					topRes = line.split()[1]
-					break
-		with open(ligandName+"_OUTPUT.pdb") as ligandData:
-			for line in ligandData:
-				res = re.findall(r'Name', line)
-				if res:
-					zincId = line.split()[3]
-					break
-
-		with open('summary.txt', 'a+') as summary:
-			summary.write(ligandName+".pdbqt\t"+topRes+"\t"+zincId+'\n')
-		os.replace(file, ligandName + '.txt')
-				
-
-
-	print("See the 'summary.txt' file in the", "'" +args.output+"' directory.")
-	print("Sorting the results...")
-	system("sort -n -k 2 summary.txt -o Summary_Final.txt")
-	print("See the 'Summary_Final.txt' file in the", "'"+args.output+"' directory.")
-
+	system("./postprocess.bash " + args.output)
 
 def main():
 	print ("This is a Lab 127 Impromptu Cluster Creator/Manager")
