@@ -1,13 +1,15 @@
-receptor = Model_modified209.pdbqt
+receptor = 5H4I_DOCK.pdbqt
 
-center_x = 24.141
-center_y = 64.389
-center_z = -19.124
+center_x = -5.576
+center_y = 8.208
+center_z = -13.937
 
-size_x = 68
-size_y = 62
-size_z = 46
+size_x = 22
+size_y = 16
+size_z = 22
 
 num_modes = 10
 
 cpu = 6
+
+exhaustiveness = 12
