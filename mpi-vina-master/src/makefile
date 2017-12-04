@@ -23,6 +23,6 @@ CLinkedList.o: CLinkedList.c CLinkedList.h
 	mpicc -c CLinkedList.c 
 
 reset:
-	rm ./Output/*; mv ./ProcessedLigand/* ./Ligand/
+	rm ./Output/*; rm ./ProcessedLigand/*
 clean:
 	rm -rf *o mpiVINA

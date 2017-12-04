@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from os import system, makedirs, chdir, path
 import os
+import time
 import subprocess
 import sys
 import glob
@@ -18,6 +19,8 @@ parser.add_argument('-t', '--test', action='store_true',
 					help='launch test application to verify mpi connections')
 parser.add_argument('-n', '--nodes', nargs='+',
 					help='hardcode which nodes to run on (e.g. -n 8 9 14 3)')
+parser.add_argument('-x', '--exclude', nargs='+', type=int,
+					help='exclude nodes from program (e.g. -x 31 2 15)')
 parser.add_argument('-l', '--ligand', action='store', default="./Ligand",
 					help="Override Ligand Directory")
 parser.add_argument('-o', '--output', action='store', default="./Output",
@@ -45,11 +48,14 @@ def setup_script():
 	verbose_print("Setting up connections with Lab 127 Nodes")
 	alive_nodes = list()
 	# Get health of Lab 127 and find all active nodes
-	for i in range(10, 37):
+	for i in range(1, 37):
 		# lab machines 31 and 37 don't have intel mpi installed
 		if i is 31 or i is 37:
 			continue
-		cmd = "127x" + str(i) + ".csc.calpoly.edu"
+		if i < 10:
+			cmd = "127x0" + str(i) + ".csc.calpoly.edu"
+		else:
+			cmd = "127x" + str(i) + ".csc.calpoly.edu"
 		val = 0
 		try:
 			val = subprocess.check_output(['ping', '-c 1', cmd])
@@ -97,13 +103,16 @@ def hardcode_lab_state(nodes):
 	
 def rewrite_lab_state(num_nodes):
 	good_nodes = list()
-	i = 10
-	while(i - 10 != num_nodes and i < 38):
+	i = 1
+	while(i - 1 != num_nodes and i < 38):
 		# lab machines 31 and 37 don't have intel mpi installed
-		if i is 31 or i is 37 or i is 13:
+		if i is 31 or i is 37 or i is 13 or i in args.exclude:
 			i = i + 1
 			continue
-		cmd = "127x" + str(i) + ".csc.calpoly.edu"
+		if i < 10:
+			cmd = "127x0" + str(i) + ".csc.calpoly.edu"
+		else:
+			cmd = "127x" + str(i) + ".csc.calpoly.edu"
 		val = 0
 		try:
 			val = subprocess.check_output(['ping', '-c 1', cmd])
@@ -136,8 +145,23 @@ def preprocess_ligands():
 def postprocess_ligands():
 	system("./postprocess.bash " + args.output)
 
+def check_mpi():
+	verbose_print("Checking if MPI exists in PATH")
+	FNULL = open(os.devnull, 'w')
+	try:
+		subprocess.call(["mpic++", "-v"], stderr=FNULL)
+	except OSError as e:
+		print("Failed to find MPI in PATH, please add to .bashrc:")
+		print("\tLD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib64/openmpi/lib")
+		print("\tPATH=$PATH:/usr/lib64/openmpi/bin")
+		return 1
+	return 0
+
 def main():
 	print ("This is a Lab 127 Impromptu Cluster Creator/Manager")
+	
+	check_mpi()
+	
 	inital = '~'
 	while( inital is not 'y' and inital is not 'n'):
 		inital = input("Is this the first time running this script on this machine (y/n)?: ")
@@ -148,16 +172,16 @@ def main():
 		alive = hardcode_lab_state(args.nodes)
 	else:
 		num_nodes = 0
-		while( num_nodes < 1 or num_nodes > 26 ):
-			inputs = input ("Enter the number of machines you wish to use (1 to 26): ")
+		while( num_nodes < 1 or num_nodes > 36 ):
+			inputs = input ("Enter the number of machines you wish to use (1 to 36): ")
 			num_nodes = int(inputs)
 
 		
 		alive = rewrite_lab_state(num_nodes)
 	
 	print("Using Nodes:");
-	for n in alive:	print(n)
-
+	print(alive)
+	start = time.time()
 	preprocess_ligands()
 
 	mpi_exec = " mpiVINAv3"
@@ -166,7 +190,6 @@ def main():
 	mpi_source = "mpiexec "
 	mpi_args = ""
 	mpi_args = "--mca plm_rsh_no_tree_spawn 1"
-	#mpi_args += " --mca btl_base_verbose 30"
 	mpi_args += " --prefix /usr/lib64/openmpi/"
 	mpi_args += " --map-by ppr:2:node" 
 	#mpi_args += " -display-map"
@@ -187,9 +210,14 @@ def main():
 	system(mpi_source + mpi_args + mpi_out)
 
 	print("Processing has finished")
+    
+	print("Beginning PostProcessing")
+	postprocess_ligands()
+	end = time.time()
+	totalt = end - start
+	print("Total Program Time: " + str(totalt))
 	print("See the MpiVina.log file.")
 
-	postprocess_ligands()
 	
 
 main()
