@@ -19,7 +19,7 @@ parser.add_argument('-t', '--test', action='store_true',
 					help='launch test application to verify mpi connections')
 parser.add_argument('-n', '--nodes', nargs='+',
 					help='hardcode which nodes to run on (e.g. -n 8 9 14 3)')
-parser.add_argument('-x', '--exclude', nargs='+', type=int,
+parser.add_argument('-x', '--exclude', nargs='+', type=int, default=list(),
 					help='exclude nodes from program (e.g. -x 31 2 15)')
 parser.add_argument('-l', '--ligand', action='store', default="./Ligand",
 					help="Override Ligand Directory")
@@ -104,9 +104,9 @@ def hardcode_lab_state(nodes):
 def rewrite_lab_state(num_nodes):
 	good_nodes = list()
 	i = 1
-	while(i - 1 != num_nodes and i < 38):
+	while(i - 1 != num_nodes and i < 36):
 		# lab machines 31 and 37 don't have intel mpi installed
-		if i is 31 or i is 37 or i is 13 or i in args.exclude:
+		if i is 31 or i is 13 or i in args.exclude:
 			i = i + 1
 			continue
 		if i < 10:
@@ -159,7 +159,6 @@ def check_mpi():
 
 def main():
 	print ("This is a Lab 127 Impromptu Cluster Creator/Manager")
-	
 	check_mpi()
 	
 	inital = '~'
@@ -172,8 +171,8 @@ def main():
 		alive = hardcode_lab_state(args.nodes)
 	else:
 		num_nodes = 0
-		while( num_nodes < 1 or num_nodes > 36 ):
-			inputs = input ("Enter the number of machines you wish to use (1 to 36): ")
+		while( num_nodes < 1 or num_nodes > 35 ):
+			inputs = input ("Enter the number of machines you wish to use (1 to 35): ")
 			num_nodes = int(inputs)
 
 		
@@ -181,6 +180,7 @@ def main():
 	
 	print("Using Nodes:");
 	print(alive)
+	#exit(1)
 	start = time.time()
 	preprocess_ligands()
 
