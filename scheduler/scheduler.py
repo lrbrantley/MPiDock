@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 from os import path
-from .job import Job
+from job import Job, JobType
 import subprocess
+import uuid
 
 
 OPTION_MENU = """\
@@ -17,7 +18,7 @@ VALID_OPTIONS = ["1", "2", "3", "4", "5"]
 JOBS_FILE = "scheduledjobs.txt"
 
 def readJobFile():
-    with open(JOBS_FILE, "r") as f:
+    with open(JOBS_FILE, "w+") as f:
         return f.read()
 
 def processOption():
@@ -47,22 +48,40 @@ def performList():
 def handleCreate():
     start = -1
     while (start < 0 or start > 23):
-        inputS = input("Which hour (0 - 23) would you like to start?")
+        inputS = input("Which hour (0 - 23) would you like to start?\n")
         start = int(inputS)
-    print("Start set to " + start)
 
-    inputS = input("Which hour (0 - 23) would you like the job to end? -1 to run to completion")
+    print("Start set to " + str(start))
+
+    inputS = input("Which hour (0 - 23) would you like the job to end? -1 to run to completion\n")
     end = int(inputS)
     timeout = None
     if 0 <= end <= 23:
         if end < start:
-            end + 24
+            end += 24
         timeout = end - start
-    if timeout == None:
-        print("Job set to run until completion")
-    else:
-        print("Job set to run until " + end)
 
+    if timeout == None:
+        print("Job set to run until completion\n")
+    else:
+        print("Job set to run until " + str(end) + "\n")
+
+    jobId = uuid.uuid4().hex
+    
+## Defaults to just making lab127 jobs atm.
+## Also defaults to no options at the moment
+    job = Job(JobType.LAB, "", jobId, start, timeout)
+
+    currentJobs = readJobFile()
+    currentJobs += "\n" + str(job)
+    print(currentJobs)
+    print(job.toJSON())
+
+def handleDelete():
+    print("not yet implemented")
+
+def handleModify():
+    print("not yet implemented")
 
 
 def main():
