@@ -32,13 +32,9 @@ class Job:
         if self.duration is not None:
             jobString += " Duration: " + str(self.duration)
         return jobString
-##        seq = [str(self.job), self.jobOptions, self.jobId, str(self.start)]
-##        if self.duration is not None:
-##            seq.append(str(self.duration))
-##        return " ".join(seq)
 
     def toJSON(self):
-        return json.dumps(self.__dict__, cls=EnumEncoder)
+        return json.dumps(self.__dict__, cls=EnumEncoder, sort_keys=True)
 
 def jobFromJSON(jsonS):
     jsonO = json.loads(jsonS)

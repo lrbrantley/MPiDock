@@ -18,8 +18,13 @@ VALID_OPTIONS = ["1", "2", "3", "4", "5"]
 JOBS_FILE = "scheduledjobs.txt"
 
 def readJobFile():
-    with open(JOBS_FILE, "w+") as f:
+    with open(JOBS_FILE, "a+") as f:
+        f.seek(0)
         return f.read()
+
+def writeJobFile(s):
+    with open(JOBS_FILE, "w") as f:
+        f.write(s)
 
 def processOption():
     choice = ""
@@ -64,7 +69,7 @@ def handleCreate():
     if timeout == None:
         print("Job set to run until completion\n")
     else:
-        print("Job set to run until " + str(end) + "\n")
+        print("Job set to run for " + str(timeout) + " hours\n")
 
     jobId = uuid.uuid4().hex
     
@@ -73,9 +78,10 @@ def handleCreate():
     job = Job(JobType.LAB, "", jobId, start, timeout)
 
     currentJobs = readJobFile()
-    currentJobs += "\n" + str(job)
-    print(currentJobs)
-    print(job.toJSON())
+    currentJobs += job.toJSON() + "\n"
+    writeJobFile(currentJobs)
+    performList()
+
 
 def handleDelete():
     print("not yet implemented")
