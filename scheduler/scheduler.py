@@ -44,8 +44,29 @@ def performList():
 ## handleCreate creates a new job.
 ## Internally it should create a new job object, then place it into the crontab
 ##   and the JOBS_FILE
+def handleCreate():
+    start = -1
+    while (start < 0 or start > 23):
+        inputS = input("Which hour (0 - 23) would you like to start?")
+        start = int(inputS)
+    print("Start set to " + start)
+
+    inputS = input("Which hour (0 - 23) would you like the job to end? -1 to run to completion")
+    end = int(inputS)
+    timeout = None
+    if 0 <= end <= 23:
+        if end < start:
+            end + 24
+        timeout = end - start
+    if timeout == None:
+        print("Job set to run until completion")
+    else:
+        print("Job set to run until " + end)
+
+
 
 def main():
+   processOption()
     
 
 if __name__ == "__main__":
