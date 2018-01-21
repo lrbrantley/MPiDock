@@ -40,6 +40,11 @@ class Job:
     def toJSON(self):
         return json.dumps(self.__dict__, cls=EnumEncoder)
 
-def jobFromString(s):
-    return Job(*s.split())
-    
+def jobFromJSON(jsonS):
+    jsonO = json.loads(jsonS)
+    job = JobType(jsonO["job"])
+    jobOptions = jsonO["jobOptions"]
+    jobId = jsonO["jobId"]
+    start = jsonO["start"]
+    duration = jsonO["duration"]
+    return Job(job, jobOptions, jobId, start, duration)
