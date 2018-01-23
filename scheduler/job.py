@@ -2,13 +2,18 @@ from enum import Enum
 import json
 
 class JobType(Enum):
-    LAB = "Lab127"
+    LAB = "RunLabMngr"
     CLUSTER = "Bishop Cluster"
 
     def __str__(self):
+        return self.name
+
+    def cmd(self):
         return self.value
 
 STRING_FORMAT = "Job: {} Options: {} JobId: {} Start: {}"
+##             M  H  D  M DOW CMD
+CRON_FORMAT = "{} {} {} {} {} {}"
 
 
 class EnumEncoder(json.JSONEncoder):
@@ -35,6 +40,10 @@ class Job:
 
     def toJSON(self):
         return json.dumps(self.__dict__, cls=EnumEncoder, sort_keys=True)
+
+    def cronStr(self):
+        return CRON_FORMAT.format(0, self.start, "*", "*", "*", self.job.cmd())
+        
 
 def jobFromJSON(jsonS):
     jsonO = json.loads(jsonS)
