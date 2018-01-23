@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from os import path
-from job import Job, JobType
+from job import Job, JobType, jobFromJSON
 import subprocess
 import uuid
 
@@ -21,6 +21,10 @@ def readJobFile():
     with open(JOBS_FILE, "a+") as f:
         f.seek(0)
         return f.read()
+
+def parseJobFile():
+    jobText = readJobFile().split("\n")
+    return [jobFromJSON(x) for x in jobText if x]
 
 def writeJobFile(s):
     with open(JOBS_FILE, "w") as f:
@@ -45,7 +49,9 @@ def processOption():
 
 ## performList prints out the existing jobs
 def performList():
-    print(readJobFile())
+    jobL = parseJobFile()
+    for j in jobL:
+        print(str(j))
 
 ## handleCreate creates a new job.
 ## Internally it should create a new job object, then place it into the crontab
@@ -81,6 +87,7 @@ def handleCreate():
     currentJobs += job.toJSON() + "\n"
     writeJobFile(currentJobs)
     performList()
+    
 
 
 def handleDelete():
