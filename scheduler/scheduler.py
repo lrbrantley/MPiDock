@@ -79,8 +79,8 @@ def handleCreate():
 
     jobId = uuid.uuid4().hex
     
-## Defaults to just making lab127 jobs atm.
-## Also defaults to no options at the moment
+    ## Defaults to just making lab127 jobs atm.
+    ## Also defaults to no options at the moment
     job = Job(JobType.LAB, "", jobId, start, timeout)
 
     currentJobs = readJobFile()

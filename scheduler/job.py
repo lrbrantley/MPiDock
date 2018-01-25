@@ -2,7 +2,7 @@ from enum import Enum
 import json
 
 class JobType(Enum):
-    LAB = "RunLabMngr"
+    LAB = "/usr/local/bin/RunLabMngr"
     CLUSTER = "Bishop Cluster"
 
     def __str__(self):
