@@ -19,16 +19,35 @@ parser.add_argument('-args', '--arguments',
         help='Arguments to send to remote command')
 parser.add_argument('-mdir', '--miscdir', help='Location of extra directory to send over')
 
-def scpPath():
+def rsyncPath():
     return args.ssh + ':' + args.remote-path
+
+def buildPkg():
+
 
 def main():
     args = parser.parse_args()
     command = args.command
     
     inputP = args.input
-    if inputP is not None:
+    if inputP:
         inputFiles = listdir(inputP)
+        if args.batch:
+            i = 0
+            batchSize = int(args.batch)
+            remainingInput = len(inputFiles)
+            while batchSize < remainingInput:
+                filesToSend = inputFiles[i * batchSize, (i + 1) * batchSize]
+                i += 1
+                ##build package
+                ##sync
+                ##exec command
+                ##retrieve processed inputs
+                ##move processed inputs to processed folder locally (../processed relative to input path).
+
+
+
+
 
 
 
