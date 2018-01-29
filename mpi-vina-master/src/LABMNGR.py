@@ -10,17 +10,24 @@ import re
 import platform
 
 
-parser = argparse.ArgumentParser(description='Launch MPI-VINA across Lab 127 cluster')
+parser = argparse.ArgumentParser(
+    prog='LABMNGR',
+    description='Launch MPI-VINA across Lab 127 cluster',
+    usage='%(prog)s [options]')
 parser.add_argument('--hostfile', action='store', default="./hostFile",
                     help='Override default hostfile')
 parser.add_argument('-v', '--verbose', action='store_true',
-                    help='print verbose output')
+                    help='Print verbose output')
+parser.add_argument('-s', '--setup',action='store_true',
+                    help="Run first-time setup script")
 parser.add_argument('-n', '--nodes', nargs='+',
-                    help='hardcode which nodes to run on (e.g. -n 08 09 14 03)')
+                    help='Hardcode which nodes to run on (e.g. -n 08 09 14 03)')
 parser.add_argument('-x', '--exclude', nargs='+', type=int, default=list(),
-                    help='exclude nodes from program (e.g. -x 31 2 15)')
-parser.add_argument('-r', '--ratio', action='store', default="4",
-                    help="Division of Block size ratio (Default is 4)")
+                    help='Exclude nodes from program (e.g. -x 31 02 15)')
+parser.add_argument('-t', '--timeout', action='store', default='-1',
+                    help='Seconds mpiVINA will run before exiting')
+parser.add_argument('-r', '--ratio', action='store', default="2",
+                    help="Division of Block size ratio (Default is 2)")
 parser.add_argument('-l', '--ligand', action='store', default="./Ligand",
                     help="Override Ligand Folder")
 parser.add_argument('-o', '--output', action='store', default="./Output",
@@ -164,10 +171,7 @@ def main():
     print ("This is a Lab 127 Impromptu Cluster Creator/Manager")
     check_mpi()
     
-    inital = '~'
-    while( inital is not 'y' and inital is not 'n'):
-        inital = input("Is this the first time running this script on this machine (y/n)?: ")
-    if inital is 'y':
+    if args.setup:
         setup_script()
 
     if args.nodes:
@@ -188,6 +192,9 @@ def main():
     if not args.sp:
         preprocess_ligands()
 
+    if args.timeout != "-1":
+        os.environ['MPIEXEC_TIMEOUT'] = args.timeout
+
     mpi_exec = " mpiVINAv4"
     system("make" + mpi_exec)
 
@@ -205,17 +212,18 @@ def main():
     else:
         mpi_out = mpi_exec + exec_args + " > " + args.output + "/MpiVina.log"
 
-    print(mpi_source + mpi_args + mpi_out)
+    verbose_print(mpi_source + mpi_args + mpi_out)
 
     print("MPI-Vina is running...")
     
-    system(mpi_source + mpi_args + mpi_out)
+    subprocess.call(mpi_source + mpi_args + mpi_out, shell=True)
+    system('unset MPIEXEC_TIMEOUT')
 
     print("Processing has finished")
     
     print("Beginning PostProcessing")
     postprocess_ligands()
-    print("See the MpiVina.log file.")
+    print("See the MpiVina.log file int the 'Output' directory.")
 
     
 

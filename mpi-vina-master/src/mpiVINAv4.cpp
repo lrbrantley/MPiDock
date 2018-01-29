@@ -55,14 +55,15 @@ int main(int argc, char *argv[]) {
     ratio 			= stoi(allArgs[4]);	// Default is 4
     
     if(rank == MASTER) {
-    	printf("Master : There are %d workers\n", numProcs-1);
-    	printf("Master : Reading ligandlist file and dividing work\n");
+    	printf("Master : There are %d workers.\n", numProcs-1);
+    	printf("Master : Reading ligandlist file and dividing work.\n");
     }
     
     // All processors will read the ligandlist file and will make the work pool.
     fillList(ligandList);
 
     if(rank == MASTER){
+    	printf("Master : There are %d ligands.\n", (int) ligandList.size());
         mpiVinaManager(numProcs - 1, ratio, startTime);
     }
     else{
@@ -79,7 +80,7 @@ void fillList(std::vector<string> &ligandList){
 	ligandListFile.open(LIGAND_FILE_NAME);
 
     if ( !ligandListFile.is_open()) {
-    	fprintf(stderr, "Couldn't open file %s for reading\n", LIGAND_FILE_NAME);
+    	fprintf(stderr, "Couldn't open file %s for reading.\n", LIGAND_FILE_NAME);
         MPI_Abort(MPI_COMM_WORLD, 911); //Terminates MPI execution environment with error code 911.
         return;
     }
@@ -102,12 +103,6 @@ void mpiVinaWorker(int workerId) {
     	printf("Worker %d: Recieved blkSize %d\n", workerId, blkSize);
     }
     MPI_Barrier(MPI_COMM_WORLD);
-
-    if (wStatus.MPI_TAG == TERMINATE_TAG){
-        printf("Worker %d: Terminated.\n", workerId);
-        fflush(stdout);
-        return;
-    }
 
     // Initial request to manager for work block
     MPI_Send(NULL, 0, MPI_INT, 0, WORK_REQ_TAG, MPI_COMM_WORLD);
@@ -150,11 +145,16 @@ void mpiVinaWorker(int workerId) {
     }
 
     if (wStatus.MPI_TAG == TERMINATE_TAG){
-        printf("Worker %d: Terminated.\n", workerId);
+    	if( workerId > (int)ligandList.size()){
+    		printf("Worker %d: Not Used, Terminated.\n", workerId);
+    	}
+    	else{
+        	printf("Worker %d: Terminated.\n", workerId);
+        }
         fflush(stdout);
     }
     else{
-        printf("Worker %d: Received invalid Tag\n", workerId);
+        printf("Worker %d: Received invalid Tag.\n", workerId);
         fflush(stdout);
     }
 
