@@ -16,6 +16,13 @@ mpiVINAv3: mpiVINAv3.o
 mpiVINAv3.o: mpiVINAv3.cpp
 	mpic++ -c $(CCFLAGS) mpiVINAv3.cpp $(LDFLAGS)
 
+mpiVINAv4: mpiVINAv4.o
+	$(CC) -o $@ $^ 
+
+mpiVINAv4.o: mpiVINAv4.cpp
+	mpic++ -c $(CCFLAGS) mpiVINAv4.cpp $(LDFLAGS)
+
+
 mpiVINAv2.o: mpiVINAv2.c CLinkedList.h
 	mpicc -c mpiVINAv2.c
 	

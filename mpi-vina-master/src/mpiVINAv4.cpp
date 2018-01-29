@@ -1,0 +1,212 @@
+/*  File      : mpiVinav4.cpp
+ *  Author    : Derek Nola
+ *  Course    : CPE 450
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <unistd.h>
+#include <assert.h>
+
+#include <string>
+#include <fstream>
+#include <vector>
+#include <iostream>
+#include <chrono>
+
+#include <mpi.h>
+
+#define MASTER                  0
+
+#define COMPUTE_TAG             11
+#define TERMINATE_TAG           22
+#define WORK_REQ_TAG            33
+
+#define LIGAND_FILE_NAME        "ligandList"
+
+using std::cout;
+using std::endl;
+using std::string;
+
+typedef std::chrono::time_point<std::chrono::system_clock> timePoint;
+
+void fillList(std::vector<string> &ligandList);
+void mpiVinaManager (int numProcs, int ratio, timePoint startTime);
+void mpiVinaWorker (int workerId);
+
+MPI_Datatype MPI_LIGAND;
+string ligandDir, outputDir, processedDir;
+std::vector<string> ligandList;
+
+int main(int argc, char *argv[]) {
+    int numProcs, rank, ratio;
+    
+    timePoint startTime = std::chrono::system_clock::now();
+
+    MPI_Init (&argc, &argv );
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &numProcs);
+
+    std::vector<string> allArgs(argv, argv + argc);
+    ligandDir 		= allArgs[1]; 	// Default is Ligand folder
+    outputDir 		= allArgs[2]; 	// Default is Output folder
+    processedDir 	= allArgs[3]; 	// Default is Proccessed folder
+    ratio 			= stoi(allArgs[4]);	// Default is 4
+    
+    if(rank == MASTER) {
+    	printf("Master : There are %d workers\n", numProcs-1);
+    	printf("Master : Reading ligandlist file and dividing work\n");
+    }
+    
+    // All processors will read the ligandlist file and will make the work pool.
+    fillList(ligandList);
+
+    if(rank == MASTER){
+        mpiVinaManager(numProcs - 1, ratio, startTime);
+    }
+    else{
+        mpiVinaWorker(rank);    
+    }
+
+    MPI_Finalize();
+    return 0;
+}
+
+void fillList(std::vector<string> &ligandList){
+
+	std::ifstream ligandListFile;
+	ligandListFile.open(LIGAND_FILE_NAME);
+
+    if ( !ligandListFile.is_open()) {
+    	fprintf(stderr, "Couldn't open file %s for reading\n", LIGAND_FILE_NAME);
+        MPI_Abort(MPI_COMM_WORLD, 911); //Terminates MPI execution environment with error code 911.
+        return;
+    }
+    std::string line;
+    while (getline(ligandListFile, line)) {
+        // Add ligand to the list.
+        ligandList.push_back(line);
+    }
+}
+
+void mpiVinaWorker(int workerId) {
+    
+    std::string ligandName;
+    unsigned int blkSize, start, end;
+    int offset;
+    MPI_Status wStatus;
+    // Recieve size of work blocks
+    MPI_Bcast(&blkSize, 1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
+    if(workerId == 1){
+    	printf("Worker %d: Recieved blkSize %d\n", workerId, blkSize);
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    if (wStatus.MPI_TAG == TERMINATE_TAG){
+        printf("Worker %d: Terminated.\n", workerId);
+        fflush(stdout);
+        return;
+    }
+
+    // Initial request to manager for work block
+    MPI_Send(NULL, 0, MPI_INT, 0, WORK_REQ_TAG, MPI_COMM_WORLD);
+    MPI_Recv(&offset, 1, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &wStatus);
+
+    while (wStatus.MPI_TAG == COMPUTE_TAG)
+    {
+        start = blkSize*offset;
+        end = (blkSize+start< ligandList.size())? blkSize+start : ligandList.size();
+        printf("Worker %d: Started on %u to %u.\n", 
+            workerId, start, end - 1);
+
+        for(unsigned int i = start; i < end; i++) {
+        	ligandName = ligandList[i];
+            printf("Worker %d: Ligand '%u' is processing...\n", workerId, i);
+            fflush(stdout);
+	        // Setup the Autodock Vina command
+	        std::string vinaCmd = "Vina/vina --config Vina/conf.txt --ligand "; 
+	        vinaCmd.append(ligandDir + "/");
+	        vinaCmd.append(ligandName);
+	        vinaCmd.append(" --out " + outputDir + "/");
+	        vinaCmd.append(ligandName);
+	        vinaCmd.append(" --log " + outputDir + "/");
+	        vinaCmd.append(ligandName);
+	        vinaCmd.append(".txt > /dev/null");
+	        // Call Autodock Vina to perform molecular docking.
+	        system(vinaCmd.c_str());
+
+	        vinaCmd.clear();
+	        vinaCmd.append("mv " + ligandDir + "/");
+	        vinaCmd.append(ligandName);
+	        vinaCmd.append(" " + processedDir + "/");
+	        // Move processed ligands to ProcessedLigand directory.
+	        system(vinaCmd.c_str());
+        }
+
+        // Request next work block
+        MPI_Send(NULL, 0, MPI_INT, 0, WORK_REQ_TAG, MPI_COMM_WORLD);
+        MPI_Recv(&offset, 1, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &wStatus);
+    }
+
+    if (wStatus.MPI_TAG == TERMINATE_TAG){
+        printf("Worker %d: Terminated.\n", workerId);
+        fflush(stdout);
+    }
+    else{
+        printf("Worker %d: Received invalid Tag\n", workerId);
+        fflush(stdout);
+    }
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    return;
+}
+
+void mpiVinaManager(int numWorkers, int ratio, timePoint startTime) {
+    
+    std::string ligandName;
+    int rem, index = 0, list_len;
+    unsigned blkSize;
+    MPI_Status mStatus;
+
+    list_len = rem = ligandList.size();
+
+    blkSize = list_len / (numWorkers * ratio);
+    blkSize = (blkSize < 1)? 1 : blkSize;
+
+    // Send out inital value of block size
+    MPI_Bcast(&blkSize, 1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
+    printf("Master : Sent blkSize %d\n", blkSize);
+    MPI_Barrier(MPI_COMM_WORLD);
+
+ 
+    // Wait for work requests
+    // Respond with proper index
+    while(index < (int)ligandList.size()){
+        MPI_Recv(NULL, 0, MPI_INT, MPI_ANY_SOURCE, 
+            WORK_REQ_TAG, MPI_COMM_WORLD, &mStatus);
+        MPI_Send(&index, 1, MPI_INT, mStatus.MPI_SOURCE, 
+                COMPUTE_TAG, MPI_COMM_WORLD);
+        index++;
+    }
+
+    //Send out terminate commands
+    for(int i = 0; i < numWorkers; i++){
+        MPI_Recv(NULL, 0, MPI_INT, MPI_ANY_SOURCE, 
+            WORK_REQ_TAG, MPI_COMM_WORLD, &mStatus);
+        MPI_Send(NULL, 0, MPI_INT, mStatus.MPI_SOURCE, 
+                TERMINATE_TAG, MPI_COMM_WORLD);
+
+    }
+    
+    MPI_Barrier(MPI_COMM_WORLD);
+    sleep(1); //Allow stdout buffer to empty
+    timePoint endTime = std::chrono::system_clock::now();
+    std::chrono::duration<double> elapsed = endTime- startTime;
+    printf("\n\n..........................................\n");
+    printf("   Number of workers       = %d \n", numWorkers);
+    printf("   Number of Ligands       = %u \n", list_len);
+    printf("   Total time required     = %.2lf seconds.\n", elapsed.count());
+    printf("..........................................\n\n");
+    fflush(stdout);
+}
