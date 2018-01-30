@@ -42,7 +42,7 @@ class Job:
         return json.dumps(self.__dict__, cls=EnumEncoder, sort_keys=True)
 
     def cronStr(self):
-        return CRON_FORMAT.format(0, self.start, "*", "*", "*", self.job.cmd())
+        return CRON_FORMAT.format(0, self.start, "*", "*", "*", self.job.cmd() + " --jobid " + self.jobId)
         
 
 def jobFromJSON(jsonS):

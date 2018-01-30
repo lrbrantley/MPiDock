@@ -86,13 +86,35 @@ def handleCreate():
     currentJobs = readJobFile()
     currentJobs += job.toJSON() + "\n"
     writeJobFile(currentJobs)
+    writeJobToCron(job)
     performList()
     
+
+def writeJobToCron(job):
+    currentCronTab = None
+    try:
+        currentCronTab = subprocess.check_output(['crontab', '-l']).decode()
+    except subprocess.CalledProcessError as e:
+        currentCronTab = ""
+    newCronTab = currentCronTab + job.cronStr() + '\n'
+    
+    process = subprocess.Popen(['crontab', '-'], stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdOutErr = process.communicate(bytes(newCronTab, 'utf-8'))
+    if not process.returncode:
+        print("FAILED TO WRITE CRONTAB\n" + stdOutErr[1])
+
 
 
 
 def handleDelete():
-    print("not yet implemented")
+    currentCronTab = None
+    try:
+        currentCronTab = subprocess.check_output(['crontab', '-l']).decode()
+    except subprocess.CalledProcessError as e:
+        return
+    cronLines = currentCronTab.split('\n')
+    newCronLines = [j for j in cronLines if 
+
 
 def handleModify():
     print("not yet implemented")
