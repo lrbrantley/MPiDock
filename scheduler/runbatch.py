@@ -4,11 +4,13 @@ import os
 import shutil
 import subprocess
 import tempfile
+import time
 
 processedDirName = 'ProcessedInput'
+timeLimit = None
 
 parser = argparse.ArgumentParser()
-parser.add_argument('command', help='Location of Command to execute remotely')
+parser.add_argument('command', help='Location of command on local machine to execute remotely')
 parser.add_argument('ssh', help='User and Remote SSH Address or an alias')
 parser.add_argument('remote', help='Location on remote machine')
 parser.add_argument('-i', '--input',
@@ -18,8 +20,7 @@ parser.add_argument('-o', '--output',
 parser.add_argument('-b', '--batch',
         help='Number of input files to transfer per usage. Defaults to all of them')
 parser.add_argument('-to', '--timeout',
-        help='Time limit for this job (and the remote job) to run. If the batch setting is\
-                used as well, batches will be run until time runs out.')
+        help='Time limit for batches to run. After time limit is reached no further batches will be sent.')
 parser.add_argument('-args', '--arguments',
         help='Arguments to send to remote command')
 parser.add_argument('-mdir', '--miscdir', help='Location of extra directory to send over. Will be in \"miscdir\" of package')
@@ -72,7 +73,7 @@ def execRemoteCmd():
     sshcmd = ['ssh', args.ssh]
     heredoc = ('<< EOF\n'
                'cd ' + args.remote + '\n'
-               './' + args.command + ' ' + args.arguments + '\n'
+               './' + pathBasename(args.command) + ' ' + args.arguments + '\n'
                'EOF')
     sshcmd.append(heredoc)
     subprocess.call(sshcmd, stderr=subprocess.STDOUT)
@@ -115,9 +116,36 @@ def cleanupPkg():
     subprocess.call(sshcmd, stderr=subprocess.STDOUT)
 
 
+def performWorkflow(inputFiles = []):
+    ## pre execution steps
+    pkgTempDir = buildPkg(args.command, inputFiles)
+    sendPkg(pkgTempDir)
+    cleanupTempPkg(pkgTempDir)
+
+    ## execution
+    execRemoteCmd()
+
+    ## post execution steps
+    if args.input:
+        checkProcessedFiles()
+    if args.output:
+        getOutput()
+    cleanupPkg()
+
+def overTime(startTime):
+    if timeLimit:
+        curTime = time.monotonic()
+        return (curTime - startTime) > timeLimit
+
+
 def main():
     args = parser.parse_args()
     command = args.command
+
+    startTime = None
+    if args.timeout:
+        timeLimit = int(args.timeout)
+        startTime = time.monotonic()
     
     inputP = args.input
     if inputP:
@@ -128,18 +156,17 @@ def main():
             remainingInput = len(inputFiles)
             while batchSize < remainingInput:
                 filesToSend = inputFiles[i * batchSize, (i + 1) * batchSize]
+                performWorkflow(filesToSend)
+                remainingInput -= batchSize
                 i += 1
-                ##build package
-                ##sync
-                ##cleanup temp pkg
-                ##exec command
-                ##move processed inputs to processed folder locally (../processed relative to input path).
-                ##get output
-                ##clean up remote pkg
+                if overTime(startTime):
+                    return
 
-
-
-
+            performWorkflow(inputFiles[-remainingInput:])
+        else:
+            performWorkflow(inputFiles)
+    else:
+        performWorkflow()
 
 
 if __name__ == "__main__":
