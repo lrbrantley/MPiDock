@@ -44,7 +44,7 @@ def verbose_print(*largs, **kwargs):
     if args.verbose:
         print(*largs, **kwargs)
 
-
+# Login to all machines possible and setup ssh passwordless
 def setup_script():
     user = input("What is your ssh username?: ")
     hostname = platform.node()
@@ -59,9 +59,6 @@ def setup_script():
     alive_nodes = list()
     # Get health of Lab 127 and find all active nodes
     for i in range(1, 37):
-        # lab machines 31 and 37 don't have intel mpi installed
-        if i is 31 or i is 37:
-            continue
         if i < 10:
             cmd = "127x0" + str(i) + ".csc.calpoly.edu"
         else:
@@ -88,6 +85,7 @@ def setup_script():
 
     verbose_print("Setup Complete")
 
+# For the -n flag, check if the nodes are valid and create hostFile
 def hardcode_lab_state(nodes):
     good_nodes = list()
     for n in nodes:
@@ -99,6 +97,8 @@ def hardcode_lab_state(nodes):
             continue
         if val is not 0:
             good_nodes.append(cmd)
+ 
+    #Ensure that current machine is top of the list
     hoster = subprocess.check_output(['hostname'])
     hoster = str(hoster, 'utf-8')
     hoster = hoster.rstrip('\n')
@@ -111,12 +111,13 @@ def hardcode_lab_state(nodes):
             hosts.write(node + " slots=2" + '\n')
     return good_nodes
     
+
 def rewrite_lab_state(num_nodes):
     good_nodes = list()
     i = 1
-    while(i - 1 != num_nodes and i < 36):
-        # lab machines 31 and 37 don't have intel mpi installed
-        if i is 31 or i is 13 or i is 2 or i in args.exclude:
+    while(i - 1 != num_nodes and i < 38):
+        # Exclude machine 2 and 36 because passwordless ssh doesn't work them
+        if i is 2 or i is 36 or i in args.exclude:
             i = i + 1
             continue
         if i < 10:
@@ -129,9 +130,13 @@ def rewrite_lab_state(num_nodes):
         except subprocess.CalledProcessError as e:
             i = i + 1
             continue
+        # Ping call was successful, machine is reachable
         if val is not 0:
             good_nodes.append(cmd)
         i = i + 1
+    
+    # Ensure that current machine is in the list
+    # and force it to the top of the list
     hoster = subprocess.check_output(['hostname'])
     hoster = str(hoster, 'utf-8')
     hoster = hoster.rstrip('\n')
@@ -139,11 +144,14 @@ def rewrite_lab_state(num_nodes):
         good_nodes.remove(hoster)
     good_nodes.insert(0, hoster)
 
+    # Populate hostFile with active machines
     with open(args.hostfile, 'w') as hosts:
         for node in good_nodes:
             hosts.write(node + " slots=2" + '\n')
     return good_nodes
 
+# Launch preprocess bash script and ensure that
+# Output and Processed folders exists
 def preprocess_ligands():
     verbose_print("Preprocess " + args.ligand)
     system("./preprocess.bash " + args.ligand)
@@ -155,6 +163,8 @@ def preprocess_ligands():
 def postprocess_ligands():
     system("./postprocess.bash " + args.output)
 
+# Checks for the existence of the mpic++ compiler 
+# in order to verify that mpi exists on the main node
 def check_mpi():
     verbose_print("Checking if MPI exists in PATH")
     FNULL = open(os.devnull, 'w')
@@ -178,16 +188,13 @@ def main():
         alive = hardcode_lab_state(args.nodes)
     else:
         num_nodes = 0
-        while( num_nodes < 1 or num_nodes > 35 ):
+        while( num_nodes < 1 ):
             inputs = input ("Enter the number of machines you wish to use (1 to 35): ")
             num_nodes = int(inputs)
-
-        
         alive = rewrite_lab_state(num_nodes)
     
-    print("Using Nodes:");
-    print(alive)
-    #exit(1)
+    print("Using " + str(len(alive)) + " Nodes:");
+    verbose_print(alive)
 
     if not args.sp:
         preprocess_ligands()
@@ -195,15 +202,22 @@ def main():
     if args.timeout != "-1":
         os.environ['MPIEXEC_TIMEOUT'] = args.timeout
 
+    #Generate mpiVINA from source files
     mpi_exec = " mpiVINAv4"
     system("make" + mpi_exec)
 
     mpi_source = "mpiexec "
+    # Use the ssh information for the current machine in a spider pattern
+    # without this mpi attempts to ssh in a ring patter from worker to worker
     mpi_args = "--mca plm_rsh_no_tree_spawn 1"
+    # Use the eno1 network connection
     mpi_args += " --mca btl_tcp_if_include eno1"
     mpi_args += " --prefix /usr/lib64/openmpi/"
+    # Enable 2 workers per machine for a total of 12 cores per machine
     mpi_args += " --map-by ppr:2:node" 
+    # Displays verbose information about the cluster
     #mpi_args += " -display-map"
+    # Use the created hostFile for the ssh information
     mpi_args += " -hostfile " + args.hostfile
     exec_args = " " + args.ligand + " " + args.output + " " + args.processed + " " + args.ratio
     
@@ -217,6 +231,8 @@ def main():
     print("MPI-Vina is running...")
     
     subprocess.call(mpi_source + mpi_args + mpi_out, shell=True)
+    
+    # Clear any timeouts for mpi if they exist
     system('unset MPIEXEC_TIMEOUT')
 
     print("Processing has finished")
