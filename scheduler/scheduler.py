@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from os import path
-from job import Job, JobType, jobFromJSON
+from job import Job, JobType, jobFromJSON, CRON_JOB_ID_TAG
 import subprocess
 import uuid
 
@@ -30,6 +30,10 @@ def writeJobFile(s):
     with open(JOBS_FILE, "w") as f:
         f.write(s)
 
+def writeJobsToJobFile(jl):
+    s = '\n'.join([j.toJSON for j in jl]) + '\n'
+    writeJobFile(s)
+
 def processOption():
     choice = ""
     while True:
@@ -50,8 +54,10 @@ def processOption():
 ## performList prints out the existing jobs
 def performList():
     jobL = parseJobFile()
+    i = 1
     for j in jobL:
-        print(str(j))
+        print('Job ' + str(i) + ': ' + str(j))
+        i += 1
 
 ## handleCreate creates a new job.
 ## Internally it should create a new job object, then place it into the crontab
@@ -86,37 +92,86 @@ def handleCreate():
     currentJobs = readJobFile()
     currentJobs += job.toJSON() + "\n"
     writeJobFile(currentJobs)
-    writeJobToCron(job)
+    writeJobToCrontab(job)
     performList()
     
-
-def writeJobToCron(job):
-    currentCronTab = None
-    try:
-        currentCronTab = subprocess.check_output(['crontab', '-l']).decode()
-    except subprocess.CalledProcessError as e:
-        currentCronTab = ""
-    newCronTab = currentCronTab + job.cronStr() + '\n'
-    
+def writeToCrontab(cronStr):
     process = subprocess.Popen(['crontab', '-'], stdin=subprocess.PIPE, stderr=subprocess.PIPE)
-    stdOutErr = process.communicate(bytes(newCronTab, 'utf-8'))
+    stdOutErr = process.communicate(bytes(newCrontab, 'utf-8'))
     if not process.returncode:
         print("FAILED TO WRITE CRONTAB\n" + stdOutErr[1])
 
 
+def readCrontab():
+    crontab = None
+    try:
+        crontab = subprocess.check_output(['crontab', '-l']).decode()
+    except subprocess.CalledProcessError as e:
+        crontab = ""
+    return crontab 
 
+
+def writeJobToCrontab(job):
+    currentCrontab = readCrontab()
+    newCrontab = currentCrontab + job.cronStr() + '\n'
+    writeToCrontab(newCrontab)    
+
+
+def findJobFromCrontab(crontab, jobId):
+    lineNum = None
+    for i in len(crontab):
+        for j in len(crontab[i]):
+            if line[j] == CRON_JOB_ID_TAG:
+                if line[j + 1] == jobId:
+                    if lineNum:
+                        raise RuntimeError("More than one job with the same jobId in crontab!!")
+                    else:
+                        lineNum = j + 1
+
+    if not lineNum:
+        raise RuntimeError('No job with job id: ' + jobId + ' found within crontab!\n')
+    return lineNum
+
+
+def deleteJobFromCrontab(crontab, job):
+    wsSplitCrontab = [x.split() for x in crontab]
+    jobLine = findJobFromCrontab(wsSplitCrontab, job.jobId)
+    crontab.del(jobLine)
+    newCrontab = '\n'.join(crontab) + '\n'
+    writeToCrontab(newCrontab)
 
 def handleDelete():
-    currentCronTab = None
+    currentCrontab = None
     try:
-        currentCronTab = subprocess.check_output(['crontab', '-l']).decode()
+        currentCrontab = subprocess.check_output(['crontab', '-l']).decode()
     except subprocess.CalledProcessError as e:
+        print('There are no jobs in the crontab\n')
         return
-    cronLines = currentCronTab.split('\n')
-    newCronLines = [j for j in cronLines if 
+    cronLines = currentCrontab.split('\n')
+
+    currentJobs = parseJobFile()
+    if not currentJobs:
+        print("There are no existing jobs\n")
+        return
+    numJobs = len(currentJobs)
+
+    choice = None
+    while not choice:
+        print('Which existing job would you like to delete?\n')
+        choice = input(performList())
+        if (choice <= 0 || choice > numJobs)
+            print('Job chosen does not exist\n')
+            choice = None
+
+    jobToDelete = currentJobs[choice - 1]
+    deleteJobFromCrontab(currentCrontab, jobToDelete)
+    currentJobs.del(choice - 1)
+    writeJobsToJobFile(currentJobs)
+    performList()
 
 
 def handleModify():
+    
     print("not yet implemented")
 
 

@@ -139,7 +139,7 @@ def overTime(startTime):
 
 
 def main():
-    args = parser.parse_args()
+    args, __ = parser.parse_known_args()
     command = args.command
 
     startTime = None

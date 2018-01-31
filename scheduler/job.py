@@ -14,7 +14,7 @@ class JobType(Enum):
 STRING_FORMAT = "Job: {} Options: {} JobId: {} Start: {}"
 ##             M  H  D  M DOW CMD
 CRON_FORMAT = "{} {} {} {} {} {}"
-
+CRON_JOB_ID_TAG = '--jobid'
 
 class EnumEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -42,7 +42,8 @@ class Job:
         return json.dumps(self.__dict__, cls=EnumEncoder, sort_keys=True)
 
     def cronStr(self):
-        return CRON_FORMAT.format(0, self.start, "*", "*", "*", self.job.cmd() + " --jobid " + self.jobId)
+        return CRON_FORMAT.format(0, self.start, "*", "*", "*", self.job.cmd() + " " + 
+                CRON_JOB_ID_TAG + " " + self.jobId)
         
 
 def jobFromJSON(jsonS):
