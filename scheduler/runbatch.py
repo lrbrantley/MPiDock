@@ -6,7 +6,8 @@ import subprocess
 import tempfile
 import time
 
-processedDirName = 'ProcessedInput'
+processedDirPrefix = 'Processed'
+startTime = None
 timeLimit = None
 
 parser = argparse.ArgumentParser()
@@ -43,10 +44,10 @@ def buildPkg(cmdPath, inputFiles = []):
         for inF in inputFiles:
             fileP = args.input + '/' + inF
             shutil.copy2(fileP, tempDir + '/' + inputDirName)
-        os.mkdir(tempDir + '/' + processedDirName)
+        os.mkdir(tempDir + '/' + processedDirPrefix + inputDirName)
 
     if args.output:
-        os.mkdir(tempDir + '/output')
+        os.mkdir(tempDir + '/' + pathBasename(args.output))
     
     if args.miscdir:
         shutil.copytree(args.miscdir, tempDir + '/miscdir')
@@ -71,17 +72,27 @@ def cleanupTempPkg(tempDir):
 
 
 def execRemoteCmd():
+    timeRemaining = None
+    if timeLimit:
+        timeRemaining = startTime + timeLimit - time.monotonic()
+    if timeRemaining < 0:
+        return
+
+    cmdArgs = args.arguments
+    if timeRemaining:
+        cmdArgs += ' -t ' + int(timeRemaining)
+
     sshcmd = ['ssh', args.ssh]
     heredoc = ('<< EOF\n'
                'cd ' + args.remote + '\n'
-               './' + pathBasename(args.command) + ' ' + args.arguments + '\n'
+               './' + pathBasename(args.command) + ' ' + cmdArgs + '\n'
                'EOF')
     sshcmd.append(heredoc)
     subprocess.call(sshcmd, stderr=subprocess.STDOUT)
 
 
 def checkProcessedFiles():
-    remoteProcessedPath = '\'' + args.remote + '/' + processedDirName + '\''
+    remoteProcessedPath = '\'' + args.remote + '/' + processedDirName + pathBasename(args.input) + '\''
     processedFiles = subprocess.check_output(['ssh', args.ssh, 'ls', remoteProcessedPath],
                                              stderr = subprocess.STDOUT).splitlines()
     localProcessedDir = os.path.normpath(args.input + '../' + processedDirName)
@@ -108,10 +119,13 @@ def getOutput():
 
 ## package cleanup only removes input, output, and processed directories. This saves on sync time for command and miscdir.
 def cleanupPkg():
+    inputDir = pathBasename(args.input)
+    processedDir = processedDirPrefix + inputDir
+    outputDir = pathBasename(args.output)
     sshcmd = ['ssh', args.ssh]
     heredoc = ('<< EOF\n'
                'cd ' + args.remote + '\n'
-               'rm -rf ' + pathBasename(args.input) + ' output ' + processedDirName + '\n'
+               'rm -rf ' + inputDir + ' ' + processedDir + ' ' + outputDir + '\n'
                'EOF')
     sshcmd.append(heredoc)
     subprocess.call(sshcmd, stderr=subprocess.STDOUT)
@@ -133,7 +147,7 @@ def performWorkflow(inputFiles = []):
         getOutput()
     cleanupPkg()
 
-def overTime(startTime):
+def overTime():
     if timeLimit:
         curTime = time.monotonic()
         return (curTime - startTime) > timeLimit
@@ -143,7 +157,6 @@ def main():
     args, __ = parser.parse_known_args()
     command = args.command
 
-    startTime = None
     if args.timeout:
         timeLimit = int(args.timeout) * 3600
         startTime = time.monotonic()
@@ -160,7 +173,7 @@ def main():
                 performWorkflow(filesToSend)
                 remainingInput -= batchSize
                 i += 1
-                if overTime(startTime):
+                if overTime():
                     return
 
             performWorkflow(inputFiles[-remainingInput:])
