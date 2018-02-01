@@ -1,27 +1,10 @@
 from enum import Enum
 import json
 
-class JobType(Enum):
-    LAB = "/usr/local/bin/RunLabMngr"
-    CLUSTER = "Bishop Cluster"
-
-    def __str__(self):
-        return self.name
-
-    def cmd(self):
-        return self.value
-
 STRING_FORMAT = "Job: {} Options: {} JobId: {} Start: {}"
-##             M  H  D  M DOW CMD
-CRON_FORMAT = "{} {} {} {} {} {}"
 CRON_JOB_ID_TAG = '--jobid'
-
-class EnumEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, JobType):
-            return str(obj)
-        return json.JSONEncoder.default(self, obj)
-
+##             M  H  D  M DOW CMD JOB_ID
+CRON_FORMAT = '{} {} {} {} {} {} ' + CRON_JOB_ID_TAG + ' {}'
 
 class Job:
     # Jobs are assumed to attempt to run every day.
@@ -39,16 +22,15 @@ class Job:
         return jobString
 
     def toJSON(self):
-        return json.dumps(self.__dict__, cls=EnumEncoder, sort_keys=True)
+        return json.dumps(self.__dict__, sort_keys=True)
 
     def cronStr(self):
-        return CRON_FORMAT.format(0, self.start, "*", "*", "*", self.job.cmd() + " " + 
-                CRON_JOB_ID_TAG + " " + self.jobId)
+        return CRON_FORMAT.format(0, self.start, "*", "*", "*", self.job, self.jobId)
         
 
 def jobFromJSON(jsonS):
     jsonO = json.loads(jsonS)
-    job = JobType(jsonO["job"])
+    job = jsonO["job"]
     jobOptions = jsonO["jobOptions"]
     jobId = jsonO["jobId"]
     start = jsonO["start"]

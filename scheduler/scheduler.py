@@ -86,6 +86,9 @@ def calculateTimeout(start, end):
         return None
 
 
+def getJobLocation():
+    jobLoc = input('Please input the location of the job config file\n')
+
 ## handleCreate creates a new job.
 ## Internally it should create a new job object, then place it into the crontab
 ##   and the JOBS_FILE
@@ -102,9 +105,10 @@ def handleCreate():
 
     jobId = uuid.uuid4().hex
     
+    jobLoc = getJobLocation()
     ## Defaults to just making lab127 jobs atm.
     ## Also defaults to no options at the moment
-    job = Job(JobType.LAB, "", jobId, start, timeout)
+    job = Job(jobLoc, "", jobId, start, timeout)
 
     currentJobs = readJobFile()
     currentJobs += job.toJSON() + "\n"
@@ -204,7 +208,8 @@ def getModifications(job):
     while true:
         choice = input(('Choose what you would like to modify or type \'quit\'.\n'
                         '1. Start Time\n'
-                        '2. End Time\n')).strip()
+                        '2. End Time\n'
+                        '3. Job Config Location\n')).strip()
         if choice == '1':
             time = getValidHour()
             job.start = time
@@ -212,6 +217,9 @@ def getModifications(job):
             end = getEndTime()
             timeout = calculateTimeout(job.start, end)
             job.duration = timeout
+        elif choice == '3':
+            jobLoc = getJobLocation()
+            job.job = jobLoc
         elif choice == 'quit':
             return
         else:

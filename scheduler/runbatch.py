@@ -19,8 +19,9 @@ parser.add_argument('-o', '--output',
         help='Location for output files. Remote output will be transfered back into this folder')
 parser.add_argument('-b', '--batch',
         help='Number of input files to transfer per usage. Defaults to all of them')
-parser.add_argument('-to', '--timeout',
-        help='Time limit for batches to run. After time limit is reached no further batches will be sent.')
+parser.add_argument('-t', '--timeout',
+        help='Time limit in HOURS for batches to run. After time limit is reached no further batches will be sent.\
+        Also implicitly sends the remaining time as an argument to whatever command is running.')
 parser.add_argument('-args', '--arguments',
         help='Arguments to send to remote command')
 parser.add_argument('-mdir', '--miscdir', help='Location of extra directory to send over. Will be in \"miscdir\" of package')
@@ -144,7 +145,7 @@ def main():
 
     startTime = None
     if args.timeout:
-        timeLimit = int(args.timeout)
+        timeLimit = int(args.timeout) * 3600
         startTime = time.monotonic()
     
     inputP = args.input
