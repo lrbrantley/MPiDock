@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 from os import path
-from job import Job, JobType, jobFromJSON, CRON_JOB_ID_TAG
+from job import Job, jobFromJSON, CRON_JOB_ID_TAG
 import subprocess
 import uuid
 
+## TODO: Remove timeout option from scheduler, it's not well implemented with how the complete system works...
 
 OPTION_MENU = """\
 Hello, what would you like to do?
@@ -35,7 +36,7 @@ def writeJobFile(s):
 
 
 def writeJobsToJobFile(jl):
-    s = '\n'.join([j.toJSON for j in jl]) + '\n'
+    s = '\n'.join([j.toJSON() for j in jl]) + '\n'
     writeJobFile(s)
 
 
@@ -57,24 +58,27 @@ def processOption():
             print("Invalid Choice Entered, Please Select Another")
 
 ## performList prints out the existing jobs
+## TODO: Should this attempt to syncronize with crontab??
 def performList():
     jobL = parseJobFile()
     i = 1
+    print('Current Jobs')
     for j in jobL:
         print('Job ' + str(i) + ': ' + str(j))
         i += 1
+    print()
 
 
 def getValidHour():
     hour = -1
     while hour < 0 or hour > 23:
-        hour = input('Please input a time between 0 and 23\n').strip()
+        hour = int(input('Please input a time between 0 and 23\n').strip())
     return int(hour)
 
 
 def getEndTime():
-    inputS = input("Which hour (0 - 23) would you like the job to end? -1 to run to completion\n").split()
-    end = int(inputS)
+    inputS = input("Which hour (0 - 23) would you like the job to end? -1 to run to completion\n").strip()
+    return int(inputS)
 
 
 def calculateTimeout(start, end):
@@ -87,7 +91,8 @@ def calculateTimeout(start, end):
 
 
 def getJobLocation():
-    jobLoc = input('Please input the location of the job config file\n')
+    jobLoc = input('Please input the location of the job you would like to run\n')
+    return jobLoc.strip()
 
 ## handleCreate creates a new job.
 ## Internally it should create a new job object, then place it into the crontab
@@ -99,9 +104,9 @@ def handleCreate():
     end = getEndTime()
     timeout = calculateTimeout(start, end)
     if timeout == None:
-        print("Job set to run until completion\n")
+        print("Job set to run until completion")
     else:
-        print("Job set to run for " + str(timeout) + " hours\n")
+        print("Job set to run for " + str(timeout) + " hours")
 
     jobId = uuid.uuid4().hex
     
@@ -119,9 +124,9 @@ def handleCreate():
 
 def writeToCrontab(cronStr):
     process = subprocess.Popen(['crontab', '-'], stdin=subprocess.PIPE, stderr=subprocess.PIPE)
-    stdOutErr = process.communicate(bytes(newCrontab, 'utf-8'))
-    if not process.returncode:
-        print("FAILED TO WRITE CRONTAB\n" + stdOutErr[1])
+    stdOutErr = process.communicate(bytes(cronStr, 'utf-8'))
+    if process.returncode:
+        print("FAILED TO WRITE CRONTAB\n" + stdOutErr[1].decode())
 
 
 def readCrontab():
@@ -129,6 +134,8 @@ def readCrontab():
     try:
         crontab = subprocess.check_output(['crontab', '-l']).decode()
     except subprocess.CalledProcessError as e:
+        ## THIS SEEMS TO BE PRINTING CRAP... Capture stderr and see if was just no crontab issue
+        ## TODO: squelch no crontab error
         crontab = ""
     return crontab 
 
@@ -141,25 +148,34 @@ def writeJobToCrontab(job):
 
 def findJobFromCrontab(crontab, jobId):
     lineNum = None
-    for i in len(crontab):
-        for j in len(crontab[i]):
+    for i in range(len(crontab)):
+        line = crontab[i]
+        for j in range(len(line)):
             if line[j] == CRON_JOB_ID_TAG:
                 if line[j + 1] == jobId:
                     if lineNum:
                         raise RuntimeError("More than one job with the same jobId in crontab!!")
                     else:
-                        lineNum = j + 1
+                        lineNum = i
 
-    if not lineNum:
-        raise RuntimeError('No job with job id: ' + jobId + ' found within crontab!\n')
+    if lineNum is None:
+        ## TODO: Provide syncronization option?
+        print('Job Id ' + jobId + ' not found within crontab!')
+        return None
     return lineNum
 
 
 def deleteJobFromCrontab(crontab, job):
-    wsSplitCrontab = [x.split() for x in crontab]
+    cronlines = crontab.splitlines()
+    wsSplitCrontab = [x.split() for x in cronlines]
     jobLine = findJobFromCrontab(wsSplitCrontab, job.jobId)
-    crontab.del(jobLine)
-    newCrontab = '\n'.join(crontab) + '\n'
+    if jobLine is None:
+        return
+
+    del cronlines[jobLine]
+    newCrontab = ''
+    if len(cronlines):
+        newCrontab = '\n'.join(cronlines) + '\n'
     writeToCrontab(newCrontab)
 
 
@@ -173,13 +189,14 @@ def chooseFromExistingJobs(currentJobs):
 
     choice = None
     while not choice:
-        print('Which existing job would you like to delete?\n')
-        print('Choose a job below or type \'quit\'\n')
-        choice = input(performList())
+        print('Which existing job would you like to delete?')
+        print('Choose a job below or type \'quit\'')
+        performList()
+        choice = input()
         if choice.lower() == 'quit':
             return
         numChoice = int(choice)
-        if (numChoice <= 0 || numChoice > numJobs)
+        if numChoice <= 0 or numChoice > numJobs:
             print('Job chosen does not exist\n')
             choice = None
 
@@ -198,15 +215,16 @@ def handleDelete():
         return
 
     deleteJobFromCrontab(currentCrontab, jobToDelete)
-    currentJobs.del(choice)
+    del currentJobs[choice]
     writeJobsToJobFile(currentJobs)
+    print('Job Deleted')
     performList()
 
 
 def getModifications(job):
     print('Job\'s current settings: ' + str(job))
-    while true:
-        choice = input(('Choose what you would like to modify or type \'quit\'.\n'
+    while True:
+        choice = input(('Choose what you would like to modify or type \'done\'.\n'
                         '1. Start Time\n'
                         '2. End Time\n'
                         '3. Job Config Location\n')).strip()
@@ -220,17 +238,21 @@ def getModifications(job):
         elif choice == '3':
             jobLoc = getJobLocation()
             job.job = jobLoc
-        elif choice == 'quit':
+        elif choice == 'done':
             return
         else:
-            print('invalid option entered')   
+            print('Invalid option entered.')
 
 
 def modifyJobInCrontab(crontab, job):
-    wsSplitCrontab = [x.split() for x in crontab]
+    cronlines = crontab.splitlines()
+    wsSplitCrontab = [x.split() for x in cronlines]
     jobLine = findJobFromCrontab(wsSplitCrontab, job.jobId)
-    crontab[jobLine] = job.cronStr() + '\n'
-    newCrontab = '\n'.join(crontab) + '\n'
+    if jobLine is None:
+        return
+    print('Job within modify in crontab ' + str(job))
+    cronlines[jobLine] = job.cronStr()
+    newCrontab = '\n'.join(cronlines) + '\n'
     writeToCrontab(newCrontab)
 
 
@@ -245,9 +267,11 @@ def handleModify():
         print('Crontab is empty. Nothing to delete.\n')
         return
 
-    getModifications(job)
-    modifyJobInCrontab(currentCrontab, job)
-    currentJobs[choice] = job
+    getModifications(jobToModify)
+    print('Job after mods: ' + str(jobToModify))
+    currentJobs[choice] = jobToModify
+    modifyJobInCrontab(currentCrontab, jobToModify)
+    writeJobsToJobFile(currentJobs)
     performList()
 
 
