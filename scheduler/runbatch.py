@@ -78,7 +78,7 @@ def cleanupTempPkg(tempDir):
 
 def execRemoteCmd():
     timeRemaining = None
-    if timeLimit:
+    if timeLimit is not None:
         timeRemaining = startTime + timeLimit - time.monotonic()
     if timeRemaining is not None and timeRemaining < 0:
         return
@@ -88,7 +88,7 @@ def execRemoteCmd():
         cmdArgs = ''
 
     if timeRemaining:
-        cmdArgs += ' -t ' + int(timeRemaining)
+        cmdArgs += ' -t ' + str(timeRemaining)
 
     sshcmd = ['ssh', args.ssh, 'bash']
     heredoc = ('<< EOF\n'
@@ -156,6 +156,7 @@ def performWorkflow(inputFiles = []):
         getOutput()
     cleanupPkg()
 
+
 def overTime():
     if timeLimit:
         curTime = time.monotonic()
@@ -163,10 +164,11 @@ def overTime():
 
 
 def main():
-    command = args.command
+    global timeLimit
+    global startTime
 
     if args.timeout:
-        timeLimit = int(args.timeout) * 3600
+        timeLimit = float(args.timeout) * 3600
         startTime = time.monotonic()
     
     inputP = args.input
@@ -177,7 +179,7 @@ def main():
             batchSize = int(args.batch)
             remainingInput = len(inputFiles)
             while batchSize < remainingInput:
-                filesToSend = inputFiles[i * batchSize, (i + 1) * batchSize]
+                filesToSend = inputFiles[i * batchSize:(i + 1) * batchSize]
                 performWorkflow(filesToSend)
                 remainingInput -= batchSize
                 i += 1
