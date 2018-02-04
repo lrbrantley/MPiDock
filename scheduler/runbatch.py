@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import datetime
 import os
 import shutil
 import subprocess
@@ -116,10 +117,12 @@ def checkProcessedFiles():
 
 def getOutput():
     error = None
+    currentTime = datetime.datetime.utcnow().replace(microsecond=0, tzinfo=datetime.timezone.utc).isoformat()
+    localOutputPath = args.output + '/' + currentTime
+    remoteOutputPath = getRsyncPath() + '/' + pathBasename(args.output) + '/'
     for i in range(5):
         try:
-            subprocess.check_output(['rsync', '-avz', getRsyncPath() + '/' + pathBasename(args.output) + '/', args.output],
-                    stderr=subprocess.STDOUT)
+            subprocess.check_output(['rsync', '-avz', remoteOutputPath, localOutputPath], stderr=subprocess.STDOUT)
             return
         except subprocess.CalledProcessError as e:
             error = e

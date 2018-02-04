@@ -13,4 +13,4 @@ output=~/random/output
 
 batch_size=1
 
-$run_batch_loc $my_cmd $my_ssh $remote_dir -i $input -o $output --miscdir $misc_dir -b $batch_size -t .003
+$run_batch_loc $my_cmd $my_ssh $remote_dir -i $input -o $output --miscdir $misc_dir -b $batch_size
