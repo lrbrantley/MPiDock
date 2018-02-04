@@ -22,8 +22,11 @@ unpackagePackage ()
 }
 
 if [ -z "$timeout" ]; then 
-   $timeout='-1'
+   timeout='-1'
+   else
 fi
 
-# Run LABMNGR
+# first unpackage the package.
+unpackagePackage()
+# Run LABMNGR the 100 input redirection is the number of hosts to use.
 ./LABMNGR.py -l ./Ligand -o ./Output -p ./ProcessedLigand -t $timeout < 100 

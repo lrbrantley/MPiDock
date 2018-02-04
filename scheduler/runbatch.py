@@ -25,9 +25,12 @@ parser.add_argument('-t', '--timeout',
         Also implicitly sends the remaining time as an argument to whatever command is running.')
 parser.add_argument('-args', '--arguments',
         help='Arguments to send to remote command')
-parser.add_argument('-mdir', '--miscdir', help='Location of extra directory to send over. Will be in \"miscdir\" of package')
+parser.add_argument('-mdir', '--miscdir', help='Location of extra directory to send over.')
+parser.add_argument('-v', '--verbose', help='Verbose printing. Currently not in use.')
 
-def rsyncPath():
+args, __ = parser.parse_known_args()
+
+def getRsyncPath():
     return args.ssh + ':' + args.remote
 
 def pathBasename(p):
@@ -50,7 +53,7 @@ def buildPkg(cmdPath, inputFiles = []):
         os.mkdir(tempDir + '/' + pathBasename(args.output))
     
     if args.miscdir:
-        shutil.copytree(args.miscdir, tempDir + '/miscdir')
+        shutil.copytree(args.miscdir, tempDir + '/' + pathBasename(args.miscdir))
         
     return tempDir
 
@@ -60,7 +63,9 @@ def sendPkg(tempDir):
     error = None
     for i in range(5):
         try:
-            subprocess.check_output(['rsync','-avz', tempDir, rsyncPath], stderr=subprocess.STDOUT)
+            ## If you append a '/' at the end of a directory, rsync will transfer everything inside of it and not
+            ## send the directory itself, which is more what we want.
+            subprocess.check_output(['rsync','-avz', tempDir + '/', getRsyncPath()], stderr=subprocess.STDOUT)
             return
         except subprocess.CalledProcessError as e:
             error = e
@@ -75,14 +80,17 @@ def execRemoteCmd():
     timeRemaining = None
     if timeLimit:
         timeRemaining = startTime + timeLimit - time.monotonic()
-    if timeRemaining < 0:
+    if timeRemaining is not None and timeRemaining < 0:
         return
 
     cmdArgs = args.arguments
+    if cmdArgs is None:
+        cmdArgs = ''
+
     if timeRemaining:
         cmdArgs += ' -t ' + int(timeRemaining)
 
-    sshcmd = ['ssh', args.ssh]
+    sshcmd = ['ssh', args.ssh, 'bash']
     heredoc = ('<< EOF\n'
                'cd ' + args.remote + '\n'
                './' + pathBasename(args.command) + ' ' + cmdArgs + '\n'
@@ -92,14 +100,15 @@ def execRemoteCmd():
 
 
 def checkProcessedFiles():
-    remoteProcessedPath = '\'' + args.remote + '/' + processedDirName + pathBasename(args.input) + '\''
+    processedDirName = processedDirPrefix + pathBasename(args.input)
+    remoteProcessedPath = args.remote + '/' + processedDirName
     processedFiles = subprocess.check_output(['ssh', args.ssh, 'ls', remoteProcessedPath],
-                                             stderr = subprocess.STDOUT).splitlines()
-    localProcessedDir = os.path.normpath(args.input + '../' + processedDirName)
+                                             stderr = subprocess.STDOUT).decode().splitlines()
+    localProcessedDir = os.path.normpath(args.input + '/../' + processedDirName)
     try:
         os.mkdir(localProcessedDir)
     except FileExistsError as e:
-        ## do nothing.
+        pass
         
     for f in processedFiles:
         shutil.move(args.input + '/' + f, localProcessedDir)
@@ -109,8 +118,8 @@ def getOutput():
     error = None
     for i in range(5):
         try:
-            subprocess.check_call(['rsync', '-avz', args.remote + '/output', args.output],
-                                  stderr = subprocess.STDOUT)
+            subprocess.check_output(['rsync', '-avz', getRsyncPath() + '/' + pathBasename(args.output) + '/', args.output],
+                    stderr=subprocess.STDOUT)
             return
         except subprocess.CalledProcessError as e:
             error = e
@@ -122,7 +131,7 @@ def cleanupPkg():
     inputDir = pathBasename(args.input)
     processedDir = processedDirPrefix + inputDir
     outputDir = pathBasename(args.output)
-    sshcmd = ['ssh', args.ssh]
+    sshcmd = ['ssh', args.ssh, 'bash']
     heredoc = ('<< EOF\n'
                'cd ' + args.remote + '\n'
                'rm -rf ' + inputDir + ' ' + processedDir + ' ' + outputDir + '\n'
@@ -154,7 +163,6 @@ def overTime():
 
 
 def main():
-    args, __ = parser.parse_known_args()
     command = args.command
 
     if args.timeout:
