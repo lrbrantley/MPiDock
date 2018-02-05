@@ -95,6 +95,7 @@ void mpiVinaWorker(int workerId) {
     
     std::string ligandName;
     unsigned int blkSize, start, end;
+    timePoint ligandStartTime, ligandEndTime; 
     int offset;
     MPI_Status wStatus;
     // Recieve size of work blocks
@@ -116,6 +117,7 @@ void mpiVinaWorker(int workerId) {
             workerId, start, end - 1);
 
         for(unsigned int i = start; i < end; i++) {
+        	ligandStartTime = std::chrono::system_clock::now();
         	ligandName = ligandList[i];
             printf("Worker %d: Ligand '%u' is processing...\n", workerId, i);
             fflush(stdout);
@@ -137,6 +139,21 @@ void mpiVinaWorker(int workerId) {
 	        vinaCmd.append(" " + processedDir + "/");
 	        // Move processed ligands to ProcessedLigand directory.
 	        system(vinaCmd.c_str());
+
+	        ligandEndTime = std::chrono::system_clock::now();
+    		std::chrono::duration<double> elapsed = ligandEndTime - ligandStartTime;
+    		
+    		// If it takes more than 1 minute to process 
+    		// a ligand, warn the user that this node is slow.
+    		if(elapsed.count() > 60){
+    			int len = 0;
+    			char nodeName[100];
+    			MPI_Get_processor_name(nodeName, &len);
+    			nodeName[len] = 0; // Ensure null terminated string
+    			fprintf(stderr, 
+    				"WARNING: Node '%s' is slow, consider avoiding in future batches.\n", 
+    				nodeName);
+    		}
         }
 
         // Request next work block
