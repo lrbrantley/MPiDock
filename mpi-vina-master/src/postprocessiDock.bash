@@ -4,7 +4,7 @@ grabZincId()
 {
    local MYFILE=$1;
    local name=${MYFILE#org_} ## Strip off org_ prefix of processed files.
-   local zincId=$(grep "Name" $1 | awk '{print $4}');
+   local zincId=$(grep "Name" $1 | uniq | awk '{print $4}');
    echo -e "$name\t$zincId" >> zincs.txt;
 }
 
