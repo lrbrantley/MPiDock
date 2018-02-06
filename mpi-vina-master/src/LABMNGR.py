@@ -36,6 +36,8 @@ parser.add_argument('-p', '--processed', action='store', default="./ProcessedLig
                     help="Override Processed Folder")
 parser.add_argument('-sp', action='store_true',
                     help="Skip PreProcessing")
+parser.add_argument('-wpm', action='store', default="2",
+                    help="Workers Per Machine (Default is 2)")
 
 
 args = parser.parse_args()
@@ -147,7 +149,7 @@ def rewrite_lab_state(num_nodes):
     # Populate hostFile with active machines
     with open(args.hostfile, 'w') as hosts:
         for node in good_nodes:
-            hosts.write(node + " slots=2" + '\n')
+            hosts.write(node + " slots=" + args.wpm + '\n')
     return good_nodes
 
 # Launch preprocess bash script and ensure that
@@ -203,7 +205,7 @@ def main():
         os.environ['MPIEXEC_TIMEOUT'] = args.timeout
 
     #Generate mpiVINA from source files
-    mpi_exec = " mpiVINAv4"
+    mpi_exec = " mpiDock"
     system("make" + mpi_exec)
 
     mpi_source = "mpiexec "
@@ -214,7 +216,7 @@ def main():
     mpi_args += " --mca btl_tcp_if_include eno1"
     mpi_args += " --prefix /usr/lib64/openmpi/"
     # Enable 2 workers per machine for a total of 12 cores per machine
-    mpi_args += " --map-by ppr:2:node" 
+    mpi_args += " --map-by ppr:" + args.wpm + ":node" 
     # Displays verbose information about the cluster
     #mpi_args += " -display-map"
     # Use the created hostFile for the ssh information

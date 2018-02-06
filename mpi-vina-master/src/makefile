@@ -4,7 +4,7 @@
 # Course    : CSCI 522
 # Purpose   : makefile in order to ease the compilation procedure.
 CC	= mpic++
-CCFLAGS	= -std=c++11 -pedantic -Wall -O3
+CCFLAGS	= -std=c++11 -pedantic -Wall -O2
 LDFLAGS	= -lmpi
 
 mpiVINA: mpiVINAv2.o CLinkedList.o
@@ -22,6 +22,11 @@ mpiVINAv4: mpiVINAv4.o
 mpiVINAv4.o: mpiVINAv4.cpp
 	mpic++ -c $(CCFLAGS) mpiVINAv4.cpp $(LDFLAGS)
 
+mpiDock: mpiDock.o
+	$(CC) -o $@ $^ 
+
+mpiDock.o: mpiDock.cpp
+	mpic++ -c $(CCFLAGS) mpiDock.cpp $(LDFLAGS)
 
 mpiVINAv2.o: mpiVINAv2.c CLinkedList.h
 	mpicc -c mpiVINAv2.c
