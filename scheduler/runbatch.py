@@ -28,6 +28,8 @@ parser.add_argument('-args', '--arguments',
         help='Arguments to send to remote command')
 parser.add_argument('-mdir', '--miscdir', help='Location of extra directory to send over.')
 parser.add_argument('-v', '--verbose', help='Verbose printing. Currently not in use.')
+parser.add_argument('--processedPrefix', help='If your processed files have a prefix, use this argument to specify what the prefix is. That way files can be moved to the processed directory appropriately.')
+parser.add_argument('--processedFilesModified', action='store_true', help='Use this flag to specify if input files are modified remotely before placing in processed directory. This will transfer them back rather than moving files over.')
 
 args, __ = parser.parse_known_args()
 
@@ -100,6 +102,15 @@ def execRemoteCmd():
     subprocess.call(sshcmd, stderr=subprocess.STDOUT)
 
 
+## If there's a prefix, remove it to figure out the input file.
+def getCorrespondingInputFile(processedFile):
+    prefix = args.processedPrefix
+    if prefix is not None and processedFile.startswith(prefix):
+        return processedFile[len(prefix):]
+    else:
+        return processedFile
+
+
 def checkProcessedFiles():
     processedDirName = processedDirPrefix + pathBasename(args.input)
     remoteProcessedPath = args.remote + '/' + processedDirName
@@ -110,9 +121,23 @@ def checkProcessedFiles():
         os.mkdir(localProcessedDir)
     except FileExistsError as e:
         pass
-        
+
+    ## If files were modified, we have to sync them back over.
+    if args.processedFilesModified:
+        subprocess.check_output(['rsync', '-avz', getRsyncPath() + '/' + processedDirName + '/', localProcessedDir], stderr=subprocess.STDOUT)
+
     for f in processedFiles:
-        shutil.move(args.input + '/' + f, localProcessedDir)
+        localInputFile = getCorrespondingInputFile(f)
+        localInputFilePath = args.input + '/' + localInputFile
+        try:
+            if args.processedFilesModified:
+                ## Remove input since their modified brethren are already synced
+                os.remove(localInputFilePath)
+            else:
+                ## Otherwise, move to save sync time.
+                shutil.move(localInputFilePath, localProcessedDir)
+        except FileNotFoundError as e:
+            pass
 
 
 def getOutput():

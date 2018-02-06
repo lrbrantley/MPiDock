@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # This is where you have the runbatch.py python script
-run_batch_loc=~/disdrugdisc/scheduler/runbatch.py
+run_batch_loc=~/Capstone/scheduler/runbatch.py
 
 # This is the LOCAL location of the command to run.
 my_cmd=~/zika/run_labmngr.sh
@@ -19,6 +19,9 @@ input=~/zika/Ligands
 # This is the LOCAL location of where Output will be transferred back to.
 output=~/zika/Output
 
+# This is the prefix of the files we place into ProcessedLigands
+prefix='inh_'
+
 # This is the setting for how many to batch at once. Recommended is ~25k.
 batch_size=50
 # Time limit in HOURS for when to stop sending batches.
@@ -26,4 +29,5 @@ timelimit=8
 
 # Actually running the runbatch.py script.
 $run_batch_loc $my_cmd $my_ssh $remote_dir --input $input --output $output\
-      --batch $batch_size --timeout $timelimit --miscdir $misc_dir
+      --batch $batch_size --timeout $timelimit --miscdir $misc_dir --processedPrefix $prefix\
+      --processedFilesModified
