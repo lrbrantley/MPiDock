@@ -1,7 +1,0 @@
-inh_ligand20_33523.pdbqt	-10.1	ZINC000030952680
-inh_ligand_5T1V_inh_ZINC.pdbqt	-7.9	ZINC09325709
-inh_ligand_Aprotinin.pdbqt	-7.5	ZINC00156021
-inh_ligand_Aspirin.pdbqt	-5.8	ZINC000000000053
-inh_ligand_Benadryl.pdbqt	-5.8	ZINC00020244
-inh_ligand_Bromocriptine.pdbqt	-7.9	ZINC53683151
-inh_ligand_Glucose.pdbqt	-5.9	ZINC03833800
