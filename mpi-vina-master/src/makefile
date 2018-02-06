@@ -37,4 +37,4 @@ CLinkedList.o: CLinkedList.c CLinkedList.h
 reset:
 	rm ./Output/*; rm ./ProcessedLigand/*
 clean:
-	rm -rf *o mpiVINA
+	rm -rf *o mpiVINA mpiVINAv2 mpiVINAv3 mpiVINAv4 mpiDock
