@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
 # This is where you have the runbatch.py python script
-run_batch_loc=~/Capstone/scheduler/runbatch.py
+run_batch_loc=~/distdrugdisc/scheduler/runbatch.py
 
 # This is the LOCAL location of the command to run.
 my_cmd=~/zika/run_labmngr.sh
 # This is the directory of extra files to send over.
 # Inside of it we'll place in the LABMNGR, mpiVina, Autodock Vina, receptor molecule, etc.
-misc_dir=~/zika/Vina
+misc_dir=~/zika/iDock
 
 # This is an ssh alias, you could be explicit with 'user@remote_address' as well.
 my_ssh='javalab' 
@@ -23,7 +23,7 @@ output=~/zika/Output
 prefix='inh_'
 
 # This is the setting for how many to batch at once. Recommended is ~25k.
-batch_size=50
+batch_size=100
 # Time limit in HOURS for when to stop sending batches.
 timelimit=8
 

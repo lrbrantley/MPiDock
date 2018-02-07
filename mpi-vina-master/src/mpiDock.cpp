@@ -122,7 +122,7 @@ void mpiDockWorker(int workerId) {
             printf("Worker %d: Ligand '%u' is processing...\n", workerId, i);
             fflush(stdout);
 	        // Setup the iDock command
-	        std::string iDockCmd = "../../iDock/idock --config ../../iDock/idock.conf --ligand "; 
+	        std::string iDockCmd = "iDock/idock --config iDock/idock.conf --ligand ";
 	        iDockCmd.append(ligandDir + "/" + ligandName);
 	        iDockCmd.append(" --out " + processedDir);
 	   		iDockCmd.append(" --threads 6");
