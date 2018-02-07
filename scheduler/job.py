@@ -8,19 +8,15 @@ CRON_FORMAT = '{} {} {} {} {} {} ' + CRON_JOB_ID_TAG + ' {}'
 
 class Job:
     # Jobs are assumed to attempt to run every day.
-    def __init__(self, job, jobOptions, jobId, startHour, duration = None):
+    def __init__(self, job, jobOptions, jobId, startHour):
         self.job = job
         self.jobId = jobId
         self.jobOptions = jobOptions
         self.start = startHour
-        self.duration = duration
 
     def __str__(self):
-        jobString = STRING_FORMAT.format(self.job, self.jobOptions, self.jobId, self.start);
-        if self.duration is not None:
-            jobString += " Duration: " + str(self.duration)
-        return jobString
-
+        return STRING_FORMAT.format(self.job, self.jobOptions, self.jobId, self.start);
+        
     def toJSON(self):
         return json.dumps(self.__dict__, sort_keys=True)
 
@@ -34,5 +30,4 @@ def jobFromJSON(jsonS):
     jobOptions = jsonO["jobOptions"]
     jobId = jsonO["jobId"]
     start = jsonO["start"]
-    duration = jsonO["duration"]
-    return Job(job, jobOptions, jobId, start, duration)
+    return Job(job, jobOptions, jobId, start)

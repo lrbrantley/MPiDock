@@ -4,8 +4,6 @@ from job import Job, jobFromJSON, CRON_JOB_ID_TAG
 import subprocess
 import uuid
 
-## TODO: Remove timeout option from scheduler, it's not well implemented with how the complete system works...
-
 OPTION_MENU = """\
 Hello, what would you like to do?
     1. List existing jobs
@@ -76,23 +74,10 @@ def getValidHour():
     return int(hour)
 
 
-def getEndTime():
-    inputS = input("Which hour (0 - 23) would you like the job to end? -1 to run to completion\n").strip()
-    return int(inputS)
-
-
-def calculateTimeout(start, end):
-    if 0 <= end <= 23:
-        if end < start:
-            end += 24
-        return end - start   
-    else:
-        return None
-
-
 def getJobLocation():
     jobLoc = input('Please input the location of the job you would like to run\n')
     return jobLoc.strip()
+
 
 ## handleCreate creates a new job.
 ## Internally it should create a new job object, then place it into the crontab
@@ -101,19 +86,12 @@ def handleCreate():
     start = getValidHour()
     print("Start set to " + str(start))
 
-    end = getEndTime()
-    timeout = calculateTimeout(start, end)
-    if timeout == None:
-        print("Job set to run until completion")
-    else:
-        print("Job set to run for " + str(timeout) + " hours")
-
     jobId = uuid.uuid4().hex
     
     jobLoc = getJobLocation()
     ## Defaults to just making lab127 jobs atm.
     ## Also defaults to no options at the moment
-    job = Job(jobLoc, "", jobId, start, timeout)
+    job = Job(jobLoc, "", jobId, start)
 
     currentJobs = readJobFile()
     currentJobs += job.toJSON() + "\n"
@@ -226,19 +204,15 @@ def getModifications(job):
     while True:
         choice = input(('Choose what you would like to modify or type \'done\'.\n'
                         '1. Start Time\n'
-                        '2. End Time\n'
-                        '3. Job Config Location\n')).strip()
+                        '2. Job Executable Location\n'
+                        '3. Finished Modifying\n')).strip()
         if choice == '1':
             time = getValidHour()
             job.start = time
         elif choice == '2':
-            end = getEndTime()
-            timeout = calculateTimeout(job.start, end)
-            job.duration = timeout
-        elif choice == '3':
             jobLoc = getJobLocation()
             job.job = jobLoc
-        elif choice == 'done':
+        elif choice == '3':
             return
         else:
             print('Invalid option entered.')
