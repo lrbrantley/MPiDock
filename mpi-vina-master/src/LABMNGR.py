@@ -12,7 +12,7 @@ import platform
 
 parser = argparse.ArgumentParser(
     prog='LABMNGR',
-    description='Launch MPI-VINA across Lab 127 cluster',
+    description='Launch mpiDock across Lab 127 cluster',
     usage='%(prog)s [options]')
 parser.add_argument('--hostfile', action='store', default="./hostFile",
                     help='Override default hostfile')
@@ -36,8 +36,8 @@ parser.add_argument('-p', '--processed', action='store', default="./ProcessedLig
                     help="Override Processed Folder")
 parser.add_argument('-sp', action='store_true',
                     help="Skip PreProcessing")
-parser.add_argument('--wpm', action='store', default="2",
-                    help="Workers Per Machine (Default is 2)")
+parser.add_argument('--wpm', action='store', default="4",
+                    help="Workers Per Machine (Default is 4)")
 
 
 args = parser.parse_args()
@@ -163,7 +163,7 @@ def preprocess_ligands():
     makedirs(name=args.processed, exist_ok=True)
 
 def postprocess_ligands():
-    system("./postprocess.bash " + args.output + " " + args.processed)
+    system("./postprocessiDock.bash " + args.output + " " + args.processed)
 
 # Checks for the existence of the mpic++ compiler 
 # in order to verify that mpi exists on the main node

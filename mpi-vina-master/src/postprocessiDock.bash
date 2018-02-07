@@ -11,9 +11,10 @@ grabZincId()
 grabOutputData()
 {
    local MYFILE=$1;
-   local nameAndTopRes=$(sed -n '10p' $MYFILE |                      # grab top result row from log file.
-                         awk '{print $2"\t"$4}');                          # extract energy value from row.
-   echo -e "$nameAndTopRes" >> summary.txt;        # Output to summary file.
+   local topRes=$(sed -n '10p' $MYFILE |                      # grab top result row from log file.
+                         awk '{print $4}');                          # extract energy value from row. 
+   local name=${MYFILE%.txt} ## strip off the txt 
+   echo -e "$name\t$topRes" >> summary.txt;        # Output to summary file.
    mv "$MYFILE" "${MYFILE%.pdbqt.txt}.txt";                   # Change log files to *.txt files.
 }
 
@@ -34,9 +35,11 @@ for f in inh*.txt; do
 done
 wait
 
+column -t zincs.txt > zinc_cols.txt
+column -t summary.txt > sum_cols.txt
 ## Associate energy to ZINCID by Ligand Names.
-sort zincs.txt -o zincs.txt
-sort summary.txt -o summary.txt
+sort -k1 -s zinc_cols.txt -o zincs.txt
+sort -k1 -s sum_cols.txt -o summary.txt
 paste summary.txt zincs.txt > Summary_Final.txt
 
 echo "Sorting the results..."
