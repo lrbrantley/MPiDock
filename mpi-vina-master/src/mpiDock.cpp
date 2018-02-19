@@ -8,12 +8,14 @@
 #include <time.h>
 #include <unistd.h>
 #include <assert.h>
+#include <math.h>
 
 #include <string>
 #include <fstream>
 #include <vector>
 #include <iostream>
 #include <chrono>
+
 
 #include <mpi.h>
 
@@ -25,8 +27,6 @@
 
 #define LIGAND_FILE_NAME        "ligandList"
 
-using std::cout;
-using std::endl;
 using std::string;
 
 typedef std::chrono::time_point<std::chrono::system_clock> timePoint;
@@ -38,6 +38,8 @@ void mpiDockWorker (int workerId);
 MPI_Datatype MPI_LIGAND;
 string ligandDir, outputDir, processedDir;
 std::vector<string> ligandList;
+
+
 
 int main(int argc, char *argv[]) {
     int numProcs, rank, ratio;
@@ -52,7 +54,7 @@ int main(int argc, char *argv[]) {
     ligandDir 		= allArgs[1]; 	// Default is Ligand folder
     outputDir 		= allArgs[2]; 	// Default is Output folder
     processedDir 	= allArgs[3]; 	// Default is Proccessed folder
-    ratio 			= stoi(allArgs[4]);	// Default is 4
+    ratio 			= stoi(allArgs[4]);	// Default is 2
     
     if(rank == MASTER) {
     	printf("Master : There are %d workers.\n", numProcs-1);
@@ -178,11 +180,11 @@ void mpiDockWorker(int workerId) {
 void mpiDockManager(int numWorkers, int ratio, timePoint startTime) {
     
     std::string ligandName;
-    int rem, index = 0, list_len;
+    int index = 0, list_len, rem;
     unsigned blkSize;
     MPI_Status mStatus;
 
-    list_len = rem = ligandList.size();
+    list_len = ligandList.size();
 
     blkSize = list_len / (numWorkers * ratio);
     blkSize = (blkSize < 1)? 1 : blkSize;
@@ -195,12 +197,20 @@ void mpiDockManager(int numWorkers, int ratio, timePoint startTime) {
  
     // Wait for work requests
     // Respond with proper index
-    while(index < (int)(ligandList.size()/blkSize) + 1){
+    int end = (int)(ligandList.size()/blkSize) + 1;
+
+    int part = 1;
+    while(index < end){
         MPI_Recv(NULL, 0, MPI_INT, MPI_ANY_SOURCE, 
             WORK_REQ_TAG, MPI_COMM_WORLD, &mStatus);
         MPI_Send(&index, 1, MPI_INT, mStatus.MPI_SOURCE, 
                 COMPUTE_TAG, MPI_COMM_WORLD);
         index++;
+        rem = (index*100) / end;
+        if(rem > (10 * part) - 1){
+        	part++;
+       		fprintf(stderr, "Master : Launched %d%%\n", rem);
+        }
     }
 
     //Send out terminate commands

@@ -221,16 +221,17 @@ def main():
     #mpi_args += " -display-map"
     # Use the created hostFile for the ssh information
     mpi_args += " -hostfile " + args.hostfile
-    exec_args = " " + args.ligand + " " + args.output + " " + args.processed + " " + args.ratio
+    exec_args = " " + args.ligand + " " + args.output + " " + args.processed 
+    exec_args += " " + args.ratio + " " + str(args.verbose)
     
     if args.verbose:
-        mpi_out = mpi_exec + exec_args + " | tee " + args.output + "/MpiVina.log"
+        mpi_out = mpi_exec + exec_args + " | tee " + args.output + "/MpiDock.log"
     else:
-        mpi_out = mpi_exec + exec_args + " > " + args.output + "/MpiVina.log"
+        mpi_out = mpi_exec + exec_args + " > " + args.output + "/MpiDock.log"
 
     verbose_print(mpi_source + mpi_args + mpi_out)
 
-    print("MPI-Vina is running...")
+    print("MPI is running...")
     
     subprocess.call(mpi_source + mpi_args + mpi_out, shell=True)
     
@@ -241,7 +242,7 @@ def main():
     
     print("Beginning PostProcessing")
     postprocess_ligands()
-    print("See the MpiVina.log file int the 'Output' directory.")
+    print("See the MpiDock.log file int the 'Output' directory.")
 
     
 
