@@ -152,11 +152,14 @@ def rewrite_lab_state(num_nodes):
             hosts.write(node + " slots=" + args.wpm + '\n')
     return good_nodes
 
-# Launch preprocess bash script and ensure that
-# Output and Processed folders exists
+# Launch preprocess bash script
 def preprocess_ligands():
     verbose_print("Preprocess " + args.ligand)
     system("./preprocess.bash " + args.ligand)
+
+# Generates ligandList file and ensures that
+# Output and Processed folders exist
+def prepare_run():
     system("ls > ligandList " + args.ligand)
 
     makedirs(name=args.output, exist_ok=True)
@@ -200,6 +203,8 @@ def main():
 
     if not args.sp:
         preprocess_ligands()
+
+    prepare_run()
 
     if args.timeout != "-1":
         os.environ['MPIEXEC_TIMEOUT'] = args.timeout
