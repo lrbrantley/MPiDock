@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 import argparse
 import datetime
+import logging
+import logging.handlers
 import os
 import shutil
 import subprocess
 import tempfile
 import time
+
+LOGGER = None
 
 processedDirPrefix = 'Processed'
 startTime = None
@@ -49,7 +53,11 @@ def buildPkg(cmdPath, inputFiles = []):
         os.mkdir(tempDir + '/' + inputDirName)
         for inF in inputFiles:
             fileP = args.input + '/' + inF
-            shutil.copy2(fileP, tempDir + '/' + inputDirName)
+            try:
+                shutil.copy2(fileP, tempDir + '/' + inputDirName)
+            except FileNotFoundError as e:
+                LOGGER.error('File %s could not be added to package because it was not found.'
+                             ' Check to see if it is already processed.', inF)
         os.mkdir(tempDir + '/' + processedDirPrefix + inputDirName)
 
     if args.output:
@@ -61,24 +69,40 @@ def buildPkg(cmdPath, inputFiles = []):
     return tempDir
 
 
-## attempts to sync package over remotely. If it fails 5 attempts, throws the most recent error.
-def sendPkg(tempDir):
+## Performs rsync with some retries, just in case.
+def rsyncWrapper(src, dest):
     error = None
     for i in range(5):
         try:
-            ## If you append a '/' at the end of a directory, rsync will transfer everything inside of it and not
-            ## send the directory itself, which is more what we want.
-            subprocess.check_output(['rsync','-avz', tempDir + '/', getRsyncPath()], stderr=subprocess.STDOUT)
+            subprocess.check_output(['rsync', '-avz', src, dest], stderr=subprocess.PIPE)
             return
         except subprocess.CalledProcessError as e:
+            LOGGER.error('Failed to retrieve output files on attempt %s\n'
+                         'Command: %s\n'
+                         'Return Code: %s\n'
+                         'stdout: %s\n'
+                         'stderr: %s\n',
+                         str(i),
+                         e.cmd,
+                         e.returncode,
+                         e.stdout.decode(),
+                         e.stderr.decode())
             error = e
+    ## If it fails after 5 tries, we have to quit.
     raise error
 
 
+## Sends package over.
+def sendPkg(tempDir):
+    rsyncWrapper(tempDir + '/', getRsyncPath())
+
+
+## Removes the temp local package.
 def cleanupTempPkg(tempDir):
     shutil.rmtree(tempDir)
 
 
+## Executes the given command remotely.
 def execRemoteCmd():
     timeRemaining = None
     if timeLimit is not None:
@@ -99,7 +123,21 @@ def execRemoteCmd():
                './' + pathBasename(args.command) + ' ' + cmdArgs + '\n'
                'EOF')
     sshcmd.append(heredoc)
-    subprocess.call(sshcmd, stderr=subprocess.STDOUT)
+    try:
+        cmdOut = subprocess.check_output(sshcmd, stderr=subprocess.PIPE).decode()
+        LOGGER.info('command finished with output:\n'
+                    '%s',
+                    cmdOut)
+    except subprocess.CalledProcessError as e:
+        LOGGER.warn('command raised a non zero exit code\n'
+                    'CMD: %s\n'
+                    'Exit Code: %s\n'
+                    'stdout: %s\n'
+                    'stderr: %s\n',
+                    e.cmd,
+                    e.returncode,
+                    e.stdout.decode(),
+                    e.stderr.decode())
 
 
 ## If there's a prefix, remove it to figure out the input file.
@@ -111,12 +149,14 @@ def getCorrespondingInputFile(processedFile):
         return processedFile
 
 
+## Check for files in the remote processed directory and bring them back over.
 def checkProcessedFiles():
     processedDirName = processedDirPrefix + pathBasename(args.input)
     remoteProcessedPath = args.remote + '/' + processedDirName
     processedFiles = subprocess.check_output(['ssh', args.ssh, 'ls', remoteProcessedPath],
                                              stderr = subprocess.STDOUT).decode().splitlines()
     localProcessedDir = os.path.normpath(args.input + '/../' + processedDirName)
+
     try:
         os.mkdir(localProcessedDir)
     except FileExistsError as e:
@@ -124,7 +164,7 @@ def checkProcessedFiles():
 
     ## If files were modified, we have to sync them back over.
     if args.processedFilesModified:
-        subprocess.check_output(['rsync', '-avz', getRsyncPath() + '/' + processedDirName + '/', localProcessedDir], stderr=subprocess.STDOUT)
+        rsyncWrapper(getRsyncPath() + '/' + processedDirName + '/', localProcessedDir)
 
     for f in processedFiles:
         localInputFile = getCorrespondingInputFile(f)
@@ -145,13 +185,13 @@ def getOutput():
     currentTime = datetime.datetime.utcnow().replace(microsecond=0, tzinfo=datetime.timezone.utc).isoformat()
     localOutputPath = args.output + '/' + currentTime
     remoteOutputPath = getRsyncPath() + '/' + pathBasename(args.output) + '/'
-    for i in range(5):
-        try:
-            subprocess.check_output(['rsync', '-avz', remoteOutputPath, localOutputPath], stderr=subprocess.STDOUT)
-            return
-        except subprocess.CalledProcessError as e:
-            error = e
-    raise error
+
+    try:
+        os.mkdir(localProcessedDir)
+    except FileExistsError as e:
+        pass
+
+    rsyncWrapper(remoteOutputPath, localOutputPath)
 
 
 ## package cleanup only removes input, output, and processed directories. This saves on sync time for command and miscdir.
@@ -191,13 +231,32 @@ def overTime():
         return (curTime - startTime) > timeLimit
 
 
+def setupLogging():
+    global LOGGER
+    commandName = pathBasename(args.command)
+
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+    fileHandler = logging.handlers.TimedRotatingFileHandler(__name__)
+    fileHandler.setLevel(logging.DEBUG)
+    fileHandler.setFormatter(formatter)
+
+    LOGGER = logging.getLogger(commandName)
+    LOGGER.setLevel(logging.DEBUG)
+    LOGGER.addHandler(fileHandler)
+
+
 def main():
     global timeLimit
     global startTime
 
+    setupLogging()
+
+    startTime = time.monotonic()
     if args.timeout:
         timeLimit = float(args.timeout) * 3600
-        startTime = time.monotonic()
+
+    LOGGER.info('Starting job %s with timeout %s', pathBasename(args.command), str(timeLimit))
     
     inputP = args.input
     if inputP:
