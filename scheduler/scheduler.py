@@ -200,7 +200,7 @@ def deleteJobFromCrontab(crontab, job):
 def chooseFromExistingJobs(currentJobs):
     if not currentJobs:
         print("There are no existing jobs\n")
-        return
+        return (None, None)
 
     numJobs = len(currentJobs)
 
@@ -211,7 +211,7 @@ def chooseFromExistingJobs(currentJobs):
         performList()
         choice = input()
         if choice.lower() == 'quit':
-            return
+            return (None, None)
         numChoice = int(choice)
         if numChoice <= 0 or numChoice > numJobs:
             print('Job chosen does not exist\n')
