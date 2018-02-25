@@ -1,0 +1,193 @@
+#######################
+## Using runbatch.py ##
+#######################
+
+NOTE: Make folders/directories using "mkdir"
+NOTE: Transfer/place files in using "cp" or "mv" your choice.
+
+**********************************************
+** PART 1 ************************************
+** Setting up a docking job for runbatch.py **
+**********************************************
+
+// See the NCIClean directory for an example
+
+0. Make a directory with a name relating to your docking project. In these
+   instructions, we'll call it "DockingJob"
+
+
+1. Within "DockingJob" make a folder named "iDock". We'll be storing the 
+   files that Lab Manager depends on in here.
+
+   A. Place the Receptor protein in here.
+
+   B. Place "idock" and the "idock.conf" file in here.
+
+   C. Place "LABMNGR.py" in here.
+
+   D. Place the "makefile" and "mpiDock.cpp" in here.
+
+   E. Place the "postprocessiDock.bash" file in here.
+
+
+2. Within "DockingJob" make a folder named "Ligands". We'll be storing ALL of 
+   the ligands that we want to process in here. Don't worry splitting up 
+   the ligands, the batching program will do that for you.
+
+   A. Make sure that the ligands are formatted how they used to be,
+      i.e. ends with ".pdbqt" and has a line with the Name of the ligand.
+
+   B. Place the ligands in here. 
+      i.    NOTE: DO NOT have nested folders. All the ligands should be under 
+                  "Ligands" and there should be no folders within "Ligands"
+
+
+3. Within "DockingJob" make a folder named "Output". Don't put anything in 
+   here, the output from running each batch will be stored in here.
+
+
+********************************************
+** PART 2 **********************************
+** Setting up a script to run runbatch.py **
+********************************************
+
+// See nci_job.sh for an example 
+Why you should do this:
+
+   1. You have the options all configured and don't need to retype them.
+
+   2. You can use "runbatch.py" with the scheduler.
+
+1. Create a bash script, naming it probably something related to the job.
+   In this example, we'll call it "my_job.sh".
+
+   A. Add the shebang at the top. I recommend "#!/usr/bin/env bash"
+
+
+2. Enter these variables in "my_job.sh"
+   For some of them, it is important to have a single-tick marks ('),
+   this will be noted. DO NOT place them unless noted.
+   
+   A. "run_batch_loc=[location of runbatch.py]"
+
+      Ex. "run_batch_loc=~/runbatch.py" (if you have runbatch.py in your home directory).
+
+   B. "my_cmd=[location of run_labmnr.sh]"
+      
+      Ex. "my_cmd=~/DockingJob/run_labmngr.sh" 
+          (If DockingJob is in your home dir(ectory) and run_labmngr.sh is in DockingJob)
+               
+   C. "misc_dir=[location of iDock directory]"
+      
+      Ex. "misc_dir=~/DockingJob/iDock"
+
+   D. "my_ssh='[your ssh alias to a lab127 computer]'"
+      
+      i. If you haven't setup ssh keys or ssh alias yet, see "ssh_setup.txt" and DO IT.
+
+      Ex. "my_ssh='javalab'" 
+         a. NOTE THE SINGLE TICK MARKS THEY ARE IMPORTANT
+      
+   E. "remote-dir='~/[where you want the job to be placed remotely]'"
+      This is where the batch runner will place the files on the Calpoly 
+      account, so choose a name that won't overwrite important files.
+
+      Ex. "remote-dir='~/my-docking-job'" 
+         a. NOTE THE SINGLE TICK MARKS THEY ARE IMPORTANT
+
+   F. "input=[path to "Ligands" folder]"
+      
+      Ex. "input=~/DockingJob/Ligands"
+
+   G. "output=[path to "Output" folder]"
+      
+      Ex. "output=~/DockingJob/Output"
+
+   H. "prefix='org_'" NOTE THE SINGLE TICK MARKS THEY ARE IMPORTANT
+      
+   I. "batch_size=10000" 
+      This is the size of each batch that will be run remotely.
+      If you don't have much space left on your Calpoly account, make this
+      number smaller. 
+      If you have a lot of space, making this number larger will result in 
+      SLIGHTLY faster processing. 
+
+   J. "timelimit=[number of hours you want the job to run]"
+      The batch runner will stop sending batches after this time and will
+      signal to "run_labmngr.sh" how much time is remaining for each batch.
+
+      Ex. "timelimit=8" for eight hours. A reasonable time if starting at 11pm.
+      
+3. Call "runbatch.py" using your variables. In other words, enter the lines
+   in quotation marks following this to the end of "my_job.sh". 
+   Be sure to include the backslashes (\)
+   
+   "$run_batch_loc $my_cmd $my_ssh $remote_dir --input $input --output $output\
+         --batch $batch_size --timeout $timelimit --miscdir $misc_dir\
+         --processedPrefix $prefix --processedFilesModified"
+
+
+*************************************************
+** PART 3 ***************************************
+** Running your docking job with the scheduler **
+*************************************************
+
+1. Run "scheduler.py"
+
+2. Create a job, and for the job location, input the location of your job.
+   Our example job was "my_job.sh", so if "my_job.sh" was in your home dir,
+   input "~/my_job.sh"
+
+   A. See "Using_The_Scheduler.txt" for instructions on the scheduler.
+
+3. Done!
+
+
+**************************
+** PART 4 ****************
+** Getting your results **
+**************************
+
+The ligands are done being processed when they are no longer in the "Ligands"
+dir and are placed into the "ProcessedLigands" dir.
+
+All the results from docking are placed into the "Output" folder we made for our job.
+However, if you look inside the "Output" folder, you will see folders with the names
+of dates. This is because the output from each batch that is run is stored by its
+date in order to avoid file naming conflicts (i.e. "Summary_Final.txt").
+
+Thus, once all the ligands are done processing you have to concatenate 
+all of the "Summary_Final.txt"s from each batch and re-sort them. This is easy.
+1. "cd" into the "Output" directory.
+
+2. "cat */Summary_Final.txt > SuperSummary.txt" You can name it whatever you want.
+
+3. "sort -k2 -n SuperSummary.txt -o SuperSummary.txt" 
+
+4. And voila, you now have the results from the entire ligand processing run.
+
+
+**********
+** MISC **
+**********
+
+Suppose you want to inspect a particular output or ligand file, 
+to make sure it was all dandy.
+
+Manually search through timestamp dated output folders is a bad idea, so here
+is how you find a particular file.
+1. "cd" into the "Output" directory.
+
+2. "find . -type f -name '*[ligand name*]'" NOTE THE SINGLE TICK MARKS
+   
+   A. This will show you where the file is, then you can go to it and open it.
+
+      i. Alternatively, you can pipe that command into xargs and open the file in vim.
+         I have had bad luck with the terminal after exiting vim after doing this though.
+
+         Ex. "find . -type f -name '*[ligand name*]' | xargs vim"
+         OR you could cat it
+         Ex. "find . -type f -name '*[ligand name*]' | xargs cat"
+
+
+ 

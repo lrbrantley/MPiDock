@@ -1,0 +1,38 @@
+*************************
+** Using the Scheduler **
+*************************
+
+1. Starting the scheduler.
+   A. "./scheduler.py" // Execute it as if it were a bash script.
+
+
+** Scheduler Menu **
+There are 5 options.
+
+1. List existing jobs. This shows what jobs are currently listed as scheduled. 
+   A. NOTE: This relies on a file called "scheduledjobs.txt" in the same
+            directory as "scheduler.py". Only jobs mentioned in that file are
+            listable, even if jobs are already in the "crontab".
+
+2. Creating a new job.
+   A. First, input a desired start time (24 hour clock, 0 is midnight).
+   B. Second, input the location of the bash script you want to run at that time.
+      i.    Placing an absolute path (starting with "~" or "/") is recommended.
+   C. That's it. The newly updated list of existing jobs should then be printed.
+      i.    Your script will now run at the specified time.
+
+3. Deleting an existing job.
+   A. Choose a job you want to delete by entering in the NUMBER of the job,
+      not the name of the job.
+   B. You should see an updated list of the current jobs after deleting.
+
+4. Modifying an existing job.
+   A. Choose a job you want to modify by entering in the NUMBER of the job,
+      not the name of the job.
+   B. You can modify the Start time or the Job location.
+      i.    Choose an option from the screen.
+      ii.   Enter your modification.
+      iii.  Choose Option 3 when you're done.
+   C. You should see an updated list of the current jobs after modifying.
+
+5. Exit. Quiting.
