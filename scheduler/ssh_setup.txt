@@ -1,0 +1,57 @@
+////////////////////////////
+// SETTING UP SSH ALIASES //
+////////////////////////////
+
+1. Make a folder within your home directory named ".ssh"
+   A. "mkdir ~/.ssh"
+
+2. Go into the ".ssh" directory and make a file named "config".
+   A. "cd ~/.ssh"
+   B. "touch config"
+
+3. In the config file, place in your desired ssh alias.
+   A. The format for an alias is as follows.
+      i.    "Host [your alias]
+                 HostName [the ssh address]
+                 User [your username]"
+      ex:   "Host javalab
+                 HostName 127x20.csc.calpoly.edu
+                 User dli28"
+   B. Open the "config" file with your favorite editor and place in your ssh alias. 
+
+4. Test out the alias. You should now be able to connect to your old connection
+   point by typing in "ssh [your alias]" rather than the entire ssh address.
+
+/////////////////////////
+// SETTING UP SSH KEYS //
+/////////////////////////
+
+1. Navigate to your ssh folder.
+   A. "cd ~/.ssh"
+
+2. Generate a pair of private and public ssh keys.
+   A. "ssh-keygen" // run this command
+      i.    Press enter when it asks you to where to save the key.
+            The default location of "~/.ssh/id_rsa" works well, unless
+            you already have a different key there.
+      ii.   Press enter when it asks for a passphrase.
+      iii.  Press enter when it asks for a confirmation of the passphrase.
+   B. You should see a file named "id_rsa" and "id_rsa.pub" in "~/.ssh" now.
+
+3. Add the public key to the list of authorized keys on the remote server
+   so that you don't have to enter in your password.
+   A. Make sure the remote host has a ".ssh" directory.
+      i.    If not, make it.
+   B. Copy over your public key to the remote host.
+      i.    "scp ~/.ssh/id_rsa.pub [your alias]:~/.ssh/my_id_rsa.pub" // run this cmd.
+   C. On the REMOTE host, add the public key to the list of authorized keys.
+      i.    "ssh [your alias]" // go to the remote host
+      ii.   "cd ~/.ssh" // MAKE SURE THIS IS ON THE REMOTE HOST
+      iii.  "cat my_id_rsa.pub >> authorized_keys" // MAKE SURE THIS IS ON THE REMOTE HOST.
+
+4. Check the ssh key setup.
+   A. Log out of the remote host if you haven't already.
+   B. Attempt to ssh to the remote host.
+      i.    "ssh [your alias]" should work without needing to enter in a password now.
+
+
