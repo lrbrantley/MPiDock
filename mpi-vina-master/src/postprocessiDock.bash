@@ -24,16 +24,20 @@ for f in org_*; do
    grabZincId $f &
 done
 wait
-mv zincs.txt ../$1
 
 cd ..
 
+## Change to output folder.
 echo "Analysizing the results..."
 cd $1
-for f in inh*.txt; do
+for f in *.txt; do
    grabOutputData $f &
 done
 wait
+
+## Move over zincs from processed files now so that we don't accidentally
+## process it as an output file.
+mv ../$2/zincs.txt .
 
 column -t zincs.txt > zinc_cols.txt
 column -t summary.txt > sum_cols.txt
