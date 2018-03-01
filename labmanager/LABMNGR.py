@@ -155,7 +155,7 @@ def rewrite_lab_state(num_nodes):
 # Launch preprocess bash script
 def preprocess_ligands():
     verbose_print("Preprocess " + args.ligand)
-    system("./preprocess.bash " + args.ligand)
+    system("./src/preprocessVina.bash " + args.ligand)
 
 # Generates ligandList file and ensures that
 # Output and Processed folders exist
@@ -170,7 +170,9 @@ def postprocess_ligands():
         post_bash = './src/postprocessVina.bash '
     else:
         post_bash = './src/postprocessiDock.bash '
-    system(post_bash + args.output + " " + args.processed)
+    cmd = post_bash + args.output + " " + args.processed
+    verbose_print(cmd)
+    system(cmd)
 
 # Checks for the existence of the mpic++ compiler 
 # in order to verify that mpi exists on the main node
@@ -238,7 +240,7 @@ def main():
     # Use the created hostFile for the ssh information
     mpi_args += " -hostfile " + args.hostfile
     exec_args = " " + args.ligand + " " + args.output + " " + args.processed 
-    exec_args += " " + args.ratio + " " + str(args.verbose)
+    exec_args += " " + args.ratio 
     
     if args.verbose:
         mpi_out = mpi_exec + exec_args + " | tee " + args.output + exec_log
