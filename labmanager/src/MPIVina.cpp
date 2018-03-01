@@ -122,7 +122,7 @@ void mpiVinaWorker(int workerId) {
             printf("Worker %d: Ligand '%u' is processing...\n", workerId, i);
             fflush(stdout);
 	        // Setup the Autodock Vina command
-	        std::string vinaCmd = "./src/Vina/vina --config ./src/Vina/conf.txt --ligand "; 
+	        std::string vinaCmd = "./src/Vina/vina --config ./Config/conf.txt --ligand "; 
 	        vinaCmd.append(ligandDir + "/");
 	        vinaCmd.append(ligandName);
 	        vinaCmd.append(" --out " + outputDir + "/");

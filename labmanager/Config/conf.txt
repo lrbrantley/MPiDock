@@ -1,4 +1,4 @@
-receptor = 5H4I_DOCK.pdbqt
+receptor = ./Config/5H4I_DOCK.pdbqt
 
 center_x = -5.576
 center_y = 8.208
