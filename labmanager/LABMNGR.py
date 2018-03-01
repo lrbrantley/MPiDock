@@ -14,7 +14,7 @@ parser = argparse.ArgumentParser(
     prog='LABMNGR',
     description='Launch mpiDock across Lab 127 cluster',
     usage='%(prog)s [options]')
-parser.add_argument('--hostfile', action='store', default="./hostFile",
+parser.add_argument('--hostfile', action='store', default="./src/hostFile",
                     help='Override default hostfile')
 parser.add_argument('-v', '--verbose', action='store_true',
                     help='Print verbose output')
@@ -34,8 +34,8 @@ parser.add_argument('-o', '--output', action='store', default="./Output",
                     help="Override Output Folder")
 parser.add_argument('-p', '--processed', action='store', default="./ProcessedLigand",
                     help="Override Processed Folder")
-parser.add_argument('-sp', action='store_true',
-                    help="Skip PreProcessing")
+parser.add_argument('--Vina', action='store_true',
+                    help="Run MPIVina instead of MPiDock")
 parser.add_argument('--wpm', action='store', default="4",
                     help="Workers Per Machine (Default is 4)")
 
@@ -166,7 +166,11 @@ def prepare_run():
     makedirs(name=args.processed, exist_ok=True)
 
 def postprocess_ligands():
-    system("./postprocessiDock.bash " + args.output + " " + args.processed)
+    if args.Vina:
+        post_bash = './src/postprocessVina.bash '
+    else:
+        post_bash = './src/postprocessiDock.bash '
+    system(post_bash + args.output + " " + args.processed)
 
 # Checks for the existence of the mpic++ compiler 
 # in order to verify that mpi exists on the main node
@@ -201,7 +205,7 @@ def main():
     print("Using " + str(len(alive)) + " Nodes:");
     verbose_print(alive)
 
-    if not args.sp:
+    if args.Vina:
         preprocess_ligands()
 
     prepare_run()
@@ -209,9 +213,16 @@ def main():
     if args.timeout != "-1":
         os.environ['MPIEXEC_TIMEOUT'] = args.timeout
 
-    #Generate mpiVINA from source files
-    mpi_exec = " mpiDock"
-    system("make" + mpi_exec)
+    #Generate MPiDock or MPIVina from source files
+    if args.Vina:
+        mpi_exec = " MPIVina"
+        args.wpm = '2'
+        exec_log = '/MPIVina.log'
+    else:
+        mpi_exec = " MPiDock"
+        exec_log = '/MPiDock.log'
+
+    system("make -C ./src" + mpi_exec)
 
     mpi_source = "mpiexec "
     # Use the ssh information for the current machine in a spider pattern
@@ -230,9 +241,9 @@ def main():
     exec_args += " " + args.ratio + " " + str(args.verbose)
     
     if args.verbose:
-        mpi_out = mpi_exec + exec_args + " | tee " + args.output + "/MpiDock.log"
+        mpi_out = mpi_exec + exec_args + " | tee " + args.output + exec_log
     else:
-        mpi_out = mpi_exec + exec_args + " > " + args.output + "/MpiDock.log"
+        mpi_out = mpi_exec + exec_args + " > " + args.output + exec_log
 
     verbose_print(mpi_source + mpi_args + mpi_out)
 
@@ -247,7 +258,7 @@ def main():
     
     print("Beginning PostProcessing")
     postprocess_ligands()
-    print("See the MpiDock.log file int the 'Output' directory.")
+    print("See the "+ exec_log +" file in the "+ args.output +" directory.")
 
     
 

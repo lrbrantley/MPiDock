@@ -1,4 +1,4 @@
-/*  File      : mpiVinav4.cpp
+/*  File      : mpiDock.cpp
  *  Author    : Derek Nola
  *  Course    : CPE 450
  */
@@ -8,12 +8,14 @@
 #include <time.h>
 #include <unistd.h>
 #include <assert.h>
+#include <math.h>
 
 #include <string>
 #include <fstream>
 #include <vector>
 #include <iostream>
 #include <chrono>
+
 
 #include <mpi.h>
 
@@ -25,19 +27,19 @@
 
 #define LIGAND_FILE_NAME        "ligandList"
 
-using std::cout;
-using std::endl;
 using std::string;
 
 typedef std::chrono::time_point<std::chrono::system_clock> timePoint;
 
 void fillList(std::vector<string> &ligandList);
-void mpiVinaManager (int numProcs, int ratio, timePoint startTime);
-void mpiVinaWorker (int workerId);
+void mpiDockManager (int numProcs, int ratio, timePoint startTime);
+void mpiDockWorker (int workerId);
 
 MPI_Datatype MPI_LIGAND;
 string ligandDir, outputDir, processedDir;
 std::vector<string> ligandList;
+
+
 
 int main(int argc, char *argv[]) {
     int numProcs, rank, ratio;
@@ -52,7 +54,7 @@ int main(int argc, char *argv[]) {
     ligandDir 		= allArgs[1]; 	// Default is Ligand folder
     outputDir 		= allArgs[2]; 	// Default is Output folder
     processedDir 	= allArgs[3]; 	// Default is Proccessed folder
-    ratio 			= stoi(allArgs[4]);	// Default is 4
+    ratio 			= stoi(allArgs[4]);	// Default is 2
     
     if(rank == MASTER) {
     	printf("Master : There are %d workers.\n", numProcs-1);
@@ -64,10 +66,10 @@ int main(int argc, char *argv[]) {
 
     if(rank == MASTER){
     	printf("Master : There are %d ligands.\n", (int) ligandList.size());
-        mpiVinaManager(numProcs - 1, ratio, startTime);
+        mpiDockManager(numProcs - 1, ratio, startTime);
     }
     else{
-        mpiVinaWorker(rank);    
+        mpiDockWorker(rank);    
     }
 
     MPI_Finalize();
@@ -91,7 +93,7 @@ void fillList(std::vector<string> &ligandList){
     }
 }
 
-void mpiVinaWorker(int workerId) {
+void mpiDockWorker(int workerId) {
     
     std::string ligandName;
     unsigned int blkSize, start, end;
@@ -113,32 +115,28 @@ void mpiVinaWorker(int workerId) {
     {
         start = blkSize*offset;
         end = (blkSize+start< ligandList.size())? blkSize+start : ligandList.size();
-        printf("Worker %d: Started on %u to %u.\n", 
-            workerId, start, end - 1);
+        printf("Worker %d: Started on %u to %u (Offset %d).\n", 
+            workerId, start, end - 1, offset);
 
         for(unsigned int i = start; i < end; i++) {
         	ligandStartTime = std::chrono::system_clock::now();
         	ligandName = ligandList[i];
             printf("Worker %d: Ligand '%u' is processing...\n", workerId, i);
             fflush(stdout);
-	        // Setup the Autodock Vina command
-	        std::string vinaCmd = "Vina/vina --config Vina/conf.txt --ligand "; 
-	        vinaCmd.append(ligandDir + "/");
-	        vinaCmd.append(ligandName);
-	        vinaCmd.append(" --out " + outputDir + "/");
-	        vinaCmd.append(ligandName);
-	        vinaCmd.append(" --log " + outputDir + "/");
-	        vinaCmd.append(ligandName);
-	        vinaCmd.append(".txt > /dev/null");
-	        // Call Autodock Vina to perform molecular docking.
-	        system(vinaCmd.c_str());
+	        // Setup the iDock command
+	        std::string iDockCmd = "./src/iDock/idock --config ./src/iDock/idock.conf --ligand ";
+	        iDockCmd.append(ligandDir + "/" + ligandName);
+	        iDockCmd.append(" --out " + processedDir);
+	   		iDockCmd.append(" --threads 6");
+	        iDockCmd.append(" > " + outputDir + "/" + ligandName + ".txt");
+	        // Call iDock to perform molecular docking.
+	        system(iDockCmd.c_str());
 
-	        vinaCmd.clear();
-	        vinaCmd.append("mv " + ligandDir + "/");
-	        vinaCmd.append(ligandName);
-	        vinaCmd.append(" " + processedDir + "/");
+	        iDockCmd.clear();
+	        iDockCmd.append("mv " + ligandDir + "/" + ligandName);
+	        iDockCmd.append(" " + processedDir + "/" + "org_" + ligandName);
 	        // Move processed ligands to ProcessedLigand directory.
-	        system(vinaCmd.c_str());
+	        system(iDockCmd.c_str());
 
 	        ligandEndTime = std::chrono::system_clock::now();
     		std::chrono::duration<double> elapsed = ligandEndTime - ligandStartTime;
@@ -179,14 +177,14 @@ void mpiVinaWorker(int workerId) {
     return;
 }
 
-void mpiVinaManager(int numWorkers, int ratio, timePoint startTime) {
+void mpiDockManager(int numWorkers, int ratio, timePoint startTime) {
     
     std::string ligandName;
-    int rem, index = 0, list_len;
+    int index = 0, list_len, rem;
     unsigned blkSize;
     MPI_Status mStatus;
 
-    list_len = rem = ligandList.size();
+    list_len = ligandList.size();
 
     blkSize = list_len / (numWorkers * ratio);
     blkSize = (blkSize < 1)? 1 : blkSize;
@@ -199,12 +197,20 @@ void mpiVinaManager(int numWorkers, int ratio, timePoint startTime) {
  
     // Wait for work requests
     // Respond with proper index
-    while(index < (int)(ligandList.size()/blkSize) + 1){
+    int end = (int)(ligandList.size()/blkSize) + 1;
+
+    int part = 1;
+    while(index < end){
         MPI_Recv(NULL, 0, MPI_INT, MPI_ANY_SOURCE, 
             WORK_REQ_TAG, MPI_COMM_WORLD, &mStatus);
         MPI_Send(&index, 1, MPI_INT, mStatus.MPI_SOURCE, 
                 COMPUTE_TAG, MPI_COMM_WORLD);
         index++;
+        rem = (index*100) / end;
+        if(rem > (10 * part) - 1){
+        	part++;
+       		fprintf(stderr, "Master : Launched %d%%\n", rem);
+        }
     }
 
     //Send out terminate commands
