@@ -1,11 +1,27 @@
 #!/bin/bash
 
+## This makes it so that empty wildcard expansions are null rather than literals.
+shopt -s nullglob
+
 grabZincId()
 {
    local MYFILE=$1;
    local name=${MYFILE#org_} ## Strip off org_ prefix of processed files.
    local zincId=$(grep "Name" $1 | uniq | awk '{print $4}');
    echo -e "$name\t$zincId" >> zincs.txt;
+   echo -e "$name.txt" >> processedfiles.txt; ## keep track of what's been processed.
+}
+
+## iDock instances killed early still make output files, this gets rid of
+## those files so that they don't screw up the summary.
+removeBadOutput()
+{
+   local PROCESSEDFILES=$2/processedfiles.txt;
+   local badOutput=$(ls $1/*.txt | grep -v -f $PROCESSEDFILES);
+   for f in $badOutput; do
+      rm $f &
+   done
+   wait
 }
 
 grabOutputData()
@@ -20,6 +36,9 @@ grabOutputData()
 
 ## Change to Processed folder to grab zinc ids from original processed files.
 cd $2
+
+touch zincs.txt
+touch processedfiles.txt
 for f in org_*; do
    grabZincId $f &
 done
@@ -27,9 +46,12 @@ wait
 
 cd ..
 
+removeBadOutput $1 $2
+
 ## Change to output folder.
 echo "Analysizing the results..."
 cd $1
+touch summary.txt
 for f in *.txt; do
    grabOutputData $f &
 done
