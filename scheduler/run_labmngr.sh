@@ -13,12 +13,8 @@ done
 unpackagePackage ()
 {
    # Move files out to place we need them to be.
-   mv Vina/LABMNGR.py . 
-   mv Vina/*.pdbqt .
-   mv Vina/*process.bash .
-   # Have to move cpp out since it expects to be recompiled each time.
-   mv Vina/makefile .
-   mv Vina/mpiVINAv4.cpp .
+   # Everything in the Misc directory should be moved out.
+   mv Misc/* .
 }
 
 if [ -z "$timeout" ]; then 
