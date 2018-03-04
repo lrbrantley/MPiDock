@@ -3,42 +3,48 @@
 ## This makes it so that empty wildcard expansions are null rather than literals.
 shopt -s nullglob
 
+OUTPUT_DIR=$1
+PROCESSED_DIR=$2
+
 grabZincId()
 {
    local MYFILE=$1;
    local name=${MYFILE#org_} ## Strip off org_ prefix of processed files.
    local zincId=$(grep "Name" $1 | uniq | awk '{print $4}');
    echo -e "$name\t$zincId" >> zincs.txt;
-   echo -e "$name.txt" >> processedfiles.txt; ## keep track of what's been processed.
 }
 
-## iDock instances killed early still make output files, this gets rid of
-## those files so that they don't screw up the summary.
-removeBadOutput()
+## iDock instances killed early still output some bad data, this gets
+## rid of those files so that they don't screw up the summary.
+## ASSUMES you're in the output directory!!!!
+ensureValidOutputAndProcess()
 {
-   local PROCESSEDFILES=$2/processedfiles.txt;
-   local badOutput=$(ls $1/*.txt | grep -v -f $PROCESSEDFILES);
-   for f in $badOutput; do
-      rm $f &
-   done
-   wait
+   local MYFILE=$1;
+   local EXPECTED_PROCESSED_FILE=org_${f%.txt};
+   ## If the ligand file with an "org_" prefix is not in the processed ligands directory, 
+   ## then that means the output is not valid and should be removed.
+   if ! [ -e ../$PROCESSED_DIR/$EXPECTED_PROCESSED_FILE ]; then
+      rm $MYFILE;
+   else
+      ## Otherwise, process the output data and add it to the summary.
+      grabOutputData $MYFILE
+   fi
 }
 
 grabOutputData()
 {
    local MYFILE=$1;
-   local topRes=$(sed -n '10p' $MYFILE |                      # grab top result row from log file.
-                         awk '{print $4}');                          # extract energy value from row. 
-   local name=${MYFILE%.txt} ## strip off the txt 
-   echo -e "$name\t$topRes" >> summary.txt;        # Output to summary file.
-   mv "$MYFILE" "${MYFILE%.pdbqt.txt}.txt";                   # Change log files to *.txt files.
+   local topRes=$(sed -n '10p' $MYFILE |      ## grab top result row from log file.
+                  awk '{print $4}');          ## extract energy value from row. 
+   local name=${MYFILE%.txt}                  ## strip off the txt 
+   echo -e "$name\t$topRes" >> summary.txt;   ## Output to summary file.
+   mv "$MYFILE" "${MYFILE%.pdbqt.txt}.txt";   ## Change log files to *.txt files.
 }
 
 ## Change to Processed folder to grab zinc ids from original processed files.
-cd $2
+cd $PROCESSED_DIR
 
 touch zincs.txt
-touch processedfiles.txt
 for f in org_*; do
    grabZincId $f &
 done
@@ -46,20 +52,19 @@ wait
 
 cd ..
 
-removeBadOutput $1 $2
 
 ## Change to output folder.
 echo "Analysizing the results..."
-cd $1
+cd $OUTPUT_DIR
 touch summary.txt
 for f in *.txt; do
-   grabOutputData $f &
+   ensureValidOutputAndProcess $f &
 done
 wait
 
 ## Move over zincs from processed files now so that we don't accidentally
 ## process it as an output file.
-mv ../$2/zincs.txt .
+mv ../$PROCESSED_DIR/zincs.txt .
 
 column -t zincs.txt > zinc_cols.txt
 column -t summary.txt > sum_cols.txt
