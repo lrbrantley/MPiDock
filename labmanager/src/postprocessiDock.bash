@@ -44,6 +44,7 @@ grabOutputData()
 ## Change to Processed folder to grab zinc ids from original processed files.
 cd $PROCESSED_DIR
 
+echo "Grabbing ZINC IDs"
 touch zincs.txt
 for f in org_*; do
    grabZincId $f &
@@ -52,11 +53,9 @@ wait
 
 cd ..
 
-
 ## Change to output folder.
 echo "Analysizing the results..."
 cd $OUTPUT_DIR
-touch summary.txt
 for f in *.txt; do
    ensureValidOutputAndProcess $f &
 done
@@ -65,6 +64,9 @@ wait
 ## Move over zincs from processed files now so that we don't accidentally
 ## process it as an output file.
 mv ../$PROCESSED_DIR/zincs.txt .
+
+## Ensure a summary file exists if it doesn't already.
+touch summary.txt
 
 column -t zincs.txt > zinc_cols.txt
 column -t summary.txt > sum_cols.txt
