@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# This is where you have the runbatch.py python script
-run_batch_loc=~/distdrugdisc/scheduler/runbatch.py
+# This is where you have the batcher.py python script
+batcher_loc=~/distdrugdisc/scheduler/batcher.py
 
 # This is the LOCAL location of the command to run.
 my_cmd=~/zika/run_labmngr.sh
@@ -28,6 +28,6 @@ batch_size=100
 timelimit=8
 
 # Actually running the runbatch.py script.
-$run_batch_loc $my_cmd $my_ssh $remote_dir --input $input --output $output\
+$batcher_loc $my_cmd $my_ssh $remote_dir --input $input --output $output\
       --batch $batch_size --timeout $timelimit --miscdir $misc_dir --processedPrefix $prefix\
       --processedFilesModified
