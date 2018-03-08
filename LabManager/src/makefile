@@ -1,8 +1,6 @@
 # File      : makefile
-# Author    : Md Mokarrom Hossain
-# Username  : x2013idf
-# Course    : CSCI 522
-# Purpose   : makefile in order to ease the compilation procedure.
+# Author    : Derek Nola
+# Course    : CPE 450
 CC	= mpic++
 CCFLAGS	= -std=c++11 -pedantic -Wall -O2
 LDFLAGS	= -lmpi

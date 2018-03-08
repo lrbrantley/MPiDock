@@ -1,4 +1,4 @@
-/*  File      : mpiDock.cpp
+/*  File      : MPiDock.cpp
  *  Author    : Derek Nola
  *  Course    : CPE 450
  */

@@ -1,4 +1,4 @@
-/*  File      : mpiVinav4.cpp
+/*  File      : MPIVina.cpp
  *  Author    : Derek Nola
  *  Course    : CPE 450
  */
