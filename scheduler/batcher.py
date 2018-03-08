@@ -187,7 +187,7 @@ def getOutput():
     remoteOutputPath = getRsyncPath() + '/' + pathBasename(args.output) + '/'
 
     try:
-        os.mkdir(localProcessedDir)
+        os.mkdir(args.output)
     except FileExistsError as e:
         pass
 
