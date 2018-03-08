@@ -24,4 +24,4 @@ fi
 # first unpackage the package.
 unpackagePackage
 # Run LABMNGR the echo 100 pipe is the number of hosts to use.
-echo 30 | ./LABMNGR.py -l ./Ligands -o ./Output -p ./ProcessedLigands -t $timeout -v 
+echo 30 | ./LabMngr.py -l ./Ligands -o ./Output -p ./ProcessedLigands -t $timeout -v 

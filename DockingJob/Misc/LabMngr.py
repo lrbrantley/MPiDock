@@ -12,10 +12,14 @@ import platform
 
 parser = argparse.ArgumentParser(
     prog='LABMNGR',
-    description='Launch mpiDock across Lab 127 cluster',
+    description='Launch mpiDock across the MPAC Lab cluster',
     usage='%(prog)s [options]')
-parser.add_argument('--hostfile', action='store', default="./src/hostFile",
-                    help='Override default hostfile')
+parser.add_argument('-l', '--ligand', action='store', default="./Ligand",
+                    help="Override Ligand Folder")
+parser.add_argument('-o', '--output', action='store', default="./Output",
+                    help="Override Output Folder")
+parser.add_argument('-p', '--processed', action='store', default="./ProcessedLigand",
+                    help="Override Processed Folder")
 parser.add_argument('-v', '--verbose', action='store_true',
                     help='Print verbose output')
 parser.add_argument('-s', '--setup',action='store_true',
@@ -24,18 +28,14 @@ parser.add_argument('-n', '--nodes', nargs='+',
                     help='Hardcode which nodes to run on (e.g. -n 08 09 14 03)')
 parser.add_argument('-x', '--exclude', nargs='+', type=int, default=list(),
                     help='Exclude nodes from program (e.g. -x 31 02 15)')
-parser.add_argument('-t', '--timeout', action='store', default='-1',
-                    help='Seconds mpiVINA will run before exiting')
-parser.add_argument('-r', '--ratio', action='store', default="2",
-                    help="Division of Block size ratio (Default is 2)")
-parser.add_argument('-l', '--ligand', action='store', default="./Ligand",
-                    help="Override Ligand Folder")
-parser.add_argument('-o', '--output', action='store', default="./Output",
-                    help="Override Output Folder")
-parser.add_argument('-p', '--processed', action='store', default="./ProcessedLigand",
-                    help="Override Processed Folder")
 parser.add_argument('--Vina', action='store_true',
                     help="Run MPIVina instead of MPiDock")
+parser.add_argument('--hostfile', action='store', default="./src/hostFile",
+                    help='Override default hostfile')
+parser.add_argument('-t', '--timeout', action='store', default='-1',
+                    help='Seconds MPiDock will run before exiting')
+parser.add_argument('-r', '--ratio', action='store', default="2",
+                    help="Division of Block size ratio (Default is 2)")
 parser.add_argument('--wpm', action='store', default="4",
                     help="Workers Per Machine (Default is 4)")
 
@@ -57,9 +57,9 @@ def setup_script():
         print("Run:ssh-keygen")
         exit(1)
 
-    verbose_print("Setting up connections with Lab 127 Nodes")
+    verbose_print("Setting up connections with MPAC Lab Nodes")
     alive_nodes = list()
-    # Get health of Lab 127 and find all active nodes
+    # Get health of MPAC Lab and find all active nodes
     for i in range(1, 37):
         if i < 10:
             cmd = "127x0" + str(i) + ".csc.calpoly.edu"
@@ -185,15 +185,18 @@ def check_mpi():
         print("Failed to find MPI in PATH, please add to .bashrc:")
         print("\tLD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib64/openmpi/lib")
         print("\tPATH=$PATH:/usr/lib64/openmpi/bin")
+        print("\texport LD_LIBRARY_PATH")
+        print("\texport PATH")
         return 1
     return 0
 
 def main():
-    print ("This is a Lab 127 Impromptu Cluster Creator/Manager")
+    print ("This is a MPAC Lab Impromptu Cluster Creator/Manager")
     check_mpi()
     
     if args.setup:
         setup_script()
+        exit(0)
 
     if args.nodes:
         alive = hardcode_lab_state(args.nodes)
@@ -230,7 +233,8 @@ def main():
     # Use the ssh information for the current machine in a spider pattern
     # without this mpi attempts to ssh in a ring patter from worker to worker
     mpi_args = "--mca plm_rsh_no_tree_spawn 1"
-    # Use the eno1 network connection
+    # Use the eno1 network connection, this is the required network interface 
+    # for the MPAC lab
     mpi_args += " --mca btl_tcp_if_include eno1"
     mpi_args += " --prefix /usr/lib64/openmpi/"
     # Enable 2 workers per machine for a total of 12 cores per machine
