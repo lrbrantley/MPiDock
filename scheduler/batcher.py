@@ -237,7 +237,7 @@ def setupLogging():
 
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-    fileHandler = logging.handlers.TimedRotatingFileHandler(__name__)
+    fileHandler = logging.handlers.TimedRotatingFileHandler("batcher.log")
     fileHandler.setLevel(logging.DEBUG)
     fileHandler.setFormatter(formatter)
 
