@@ -1,5 +1,8 @@
 #!/bin/bash
 
+## This makes it so that empty wildcard expansions are null rather than literals.
+shopt -s nullglob
+
 cleanInputFile ()
 {
    local FILE=$1;
