@@ -174,26 +174,36 @@ def postprocess_ligands():
     verbose_print(cmd)
     system(cmd)
 
-# Checks for the existence of the mpic++ compiler 
+# Checks for the existence of the mpiexec and the correct version
 # in order to verify that mpi exists on the main node
 def check_mpi():
     verbose_print("Checking if MPI exists in PATH")
     FNULL = open(os.devnull, 'w')
+    result = ""
     try:
-        subprocess.call(["mpic++", "-v"], stderr=FNULL)
+        result = subprocess.check_output(["mpiexec", "--version"], stderr=FNULL)
     except OSError as e:
-        print("Failed to find MPI in PATH, please add to .bashrc:")
+        print("ERROR: Failed to find MPI in PATH, please add to .bashrc:")
         print("\tLD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib64/openmpi/lib")
         print("\tPATH=$PATH:/usr/lib64/openmpi/bin")
         print("\texport LD_LIBRARY_PATH")
         print("\texport PATH")
         return 1
+    result = result.decode()
+    result = result.split('\n')[0]
+    result = result.split(' ')[2]
+    major_ver = result.split('.')[0]
+    minor_ver = result.split('.')[1]
+    if major_ver is not '1':
+    	print('WARNING: Incorrect version of MPI identified')
+    	print('Version 1.10 is supported, identified version ' + result)
+    	return 1
     return 0
 
 def main():
-    print ("This is a MPAC Lab Impromptu Cluster Creator/Manager")
-    check_mpi()
-    
+    print ("MPAC Lab Impromptu Cluster Creator/Manager")
+    if check_mpi() == 1:
+    	exit(1)
     if args.setup:
         setup_script()
         exit(0)
