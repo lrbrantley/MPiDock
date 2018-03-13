@@ -2,7 +2,7 @@
 
 This project is designed to allow for the setup and execution of a program (iDock or Autodock Vina) across resources at California Polytechnic San Luis Obispo, noteably the Bishop Cluster and the Massively Parallel Accelerated Computing Lab (MPAC)— Lab 127. 
 
-## Schedular
+## Scheduler
 At the outermost level, there is the scheduler, written as a command line interface for crontab. The scheduler would then call the batcher, a program which divides up input files and then executes commands remotely with those input files.
 
 ## Batcher
