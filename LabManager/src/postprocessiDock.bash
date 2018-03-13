@@ -78,4 +78,4 @@ paste summary.txt zincs.txt > Summary_Final.txt
 echo "Sorting the results..."
 sort -n -k2 Summary_Final.txt -o Summary_Final.txt
 
-echo "See the 'SortedResult' file in the 'Output' directory."
+echo "See the 'Summary_Final.txt' file in the 'Output' directory."
