@@ -14,7 +14,7 @@ unpackagePackage ()
 {
    # Move files out to place we need them to be.
    # Everything in the Misc directory should be moved out.
-   mv Misc/* .
+   cp -r Misc/* .
 }
 
 if [ -z "$timeout" ]; then 
