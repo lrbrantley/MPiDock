@@ -42,13 +42,21 @@ def standardize_dict(vina_dict):
 
     return vina_dict
 
+def idock_txt_open(filepath):
+    with open(filepath, mode='r') as idock:
+        i_reader = csv.reader(idock, delimiter = "	")
+        idock_dict = {rows[0].split(" ")[0]:rows[0].split(" ")[-1] for rows in i_reader}       
+        
+    idock_dict = standardize_dict(idock_dict)
+
+    return idock_dict
+
 #Please use the .csv that iDock will put out
-def idock_open(filepath):
+def idock_csv_open(filepath):
     with open(filepath, mode='r') as idock:
         i_reader = csv.reader(idock)
         idock_dict = {rows[0]:rows[2] for rows in i_reader}
 
-    del idock_dict['Ligand']
     return idock_dict
 
 #Summary or Final Summary both will work 
@@ -76,15 +84,25 @@ def main():
 
     #Vina vs. iDock case  
     if len(args.iDock) == 1 and len(args.Vina) == 1:
-        dict1 = idock_open(args.iDock[0])
+        if args.iDock[0].endswith(".csv"):
+            dict1 = idock_csv_open(args.iDock[0])
+        else:
+            dict1 = idock_txt_open(args.iDock[0])
         dict2 = vina_open(args.Vina[0])
         print ("iDock, Vina")
 
     #iDock vs. iDock case
     elif len(args.iDock) == 2 and len(args.Vina) == 0:
-       dict1 = idock_open(args.iDock[0])
-       dict2 = idock_open(args.iDock[1])
-       print ("iDock1, iDock2")
+        if args.iDock[0].endswith(".csv"):
+            dict1 = idock_csv_open(args.iDock[0])
+        else:
+            dict1 = idock_txt_open(args.iDock[0])
+        
+        if args.iDock[1].endswith(".csv"):
+            dict2 = idock_csv_open(args.iDock[1])
+        else:
+            dict2 = idock_txt_open(args.iDock[1])
+        print ("iDock1, iDock2")
     
     #Vina vs. Vina case
     elif len(args.iDock) == 0 and len(args.Vina) == 2:
