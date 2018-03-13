@@ -89,7 +89,7 @@ def main():
         else:
             dict1 = idock_txt_open(args.iDock[0])
         dict2 = vina_open(args.Vina[0])
-        print ("iDock, Vina")
+        print ("ligand	('iDock', 'Vina')")
 
     #iDock vs. iDock case
     elif len(args.iDock) == 2 and len(args.Vina) == 0:
@@ -102,13 +102,13 @@ def main():
             dict2 = idock_csv_open(args.iDock[1])
         else:
             dict2 = idock_txt_open(args.iDock[1])
-        print ("iDock1, iDock2")
+        print ("ligand	('iDock1, iDock2')")
     
     #Vina vs. Vina case
     elif len(args.iDock) == 0 and len(args.Vina) == 2:
        dict1 = vina_open(args.Vina[0])
        dict2 = vina_open(args.Vina[1])
-       print ("Vina1, Vina2")
+       print ("ligand	('Vina1, Vina2')")
     
     #Error Case
     else:
