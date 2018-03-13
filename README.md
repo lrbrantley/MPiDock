@@ -14,5 +14,11 @@ The lab manager then executes MPiDock, an MPI wrapper for the iDock molecular do
 ## Accuracy Script
 This script will allow a user to compare the output logs from two runs of iDocks, two runs of Vina, or iDocks against Vina. The logs will only compare overlapping ligands. 
 
+The -a flag can be any float, but iDock only has .00 decimal places and Vina only .0. 
+
+The script will automatically handle either the automatically generated iDock log.csv file format or the iDock_Summary.txt that Lab Manager generates.
+
 Example of use:
-./accuracyComparison.py -a .5 -i ./This/Is/Where/The/iDock/Log/Is/log.csv -v ./This/Is/Where/The/Vina/Log/Is/summary.txt
+./accuracyComparison.py -a .5 -i ./iDock/Location/log.csv -v ./Vina/Location/summary.txt
+./accuracyComparison.py -a .25 -i ./iDock/Location/log.csv ./iDoct/Other/Location/iDockSummary.txt
+./accuracyComparison.py -a .75 -v ./Vina/Location/summary.txt /Vina/Other/Location/Final_summary.txt
