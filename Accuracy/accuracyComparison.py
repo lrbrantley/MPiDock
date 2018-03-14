@@ -17,7 +17,10 @@ args = parser.parse_args()
 
 #The actual comparison of the two files is done here
 def dict_compare (dict1, dict2):
-    var = args.acc   
+    if args.acc is None:
+       var = 1.0
+    else:
+      var = args.acc   
     dict1_keys = set(dict1.keys())
     dict2_keys = set(dict2.keys())
     intersect_keys = dict2_keys.intersection(dict1_keys)
