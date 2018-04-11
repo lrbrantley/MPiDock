@@ -103,6 +103,7 @@ def cleanupTempPkg(tempDir):
 
 
 ## Executes the given command remotely.
+## Returns True if executes successfully, False otherwise.
 def execRemoteCmd():
     timeRemaining = None
     if timeLimit is not None:
@@ -128,6 +129,7 @@ def execRemoteCmd():
         LOGGER.info('command finished with output:\n'
                     '%s',
                     cmdOut)
+        return True
     except subprocess.CalledProcessError as e:
         LOGGER.warn('command raised a non zero exit code\n'
                     'CMD: %s\n'
@@ -138,6 +140,7 @@ def execRemoteCmd():
                     e.returncode,
                     e.stdout.decode(),
                     e.stderr.decode())
+        return False
 
 
 ## If there's a prefix, remove it to figure out the input file.
@@ -194,15 +197,10 @@ def getOutput():
     rsyncWrapper(remoteOutputPath, localOutputPath)
 
 
-## package cleanup only removes input, output, and processed directories. This saves on sync time for command and miscdir.
-def cleanupPkg():
-    inputDir = pathBasename(args.input)
-    processedDir = processedDirPrefix + inputDir
-    outputDir = pathBasename(args.output)
+def cleanRemoteDir():
     sshcmd = ['ssh', args.ssh, 'bash']
     heredoc = ('<< EOF\n'
-               'cd ' + args.remote + '\n'
-               'rm -rf ' + inputDir + ' ' + processedDir + ' ' + outputDir + '\n'
+               'rm -rf ' + args.remote + '/* \n'
                'EOF')
     sshcmd.append(heredoc)
     subprocess.call(sshcmd, stderr=subprocess.STDOUT)
@@ -211,18 +209,21 @@ def cleanupPkg():
 def performWorkflow(inputFiles = []):
     ## pre execution steps
     pkgTempDir = buildPkg(args.command, inputFiles)
+    cleanRemoteDir() ## clean up preexecution to ensure clean processing for each batch.
     sendPkg(pkgTempDir)
     cleanupTempPkg(pkgTempDir)
 
     ## execution
-    execRemoteCmd()
+    successful = execRemoteCmd()
 
-    ## post execution steps
-    if args.input:
-        checkProcessedFiles()
-    if args.output:
-        getOutput()
-    cleanupPkg()
+    if successful:
+        ## post execution steps, only do if successful.
+        if args.input:
+            checkProcessedFiles()
+        if args.output:
+            getOutput()
+
+    cleanRemoteDir() ## post execution cleanup regardless.
 
 
 def overTime():
