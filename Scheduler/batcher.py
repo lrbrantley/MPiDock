@@ -10,6 +10,7 @@ import tempfile
 import time
 
 LOGGER = None
+ERROR_BANNER = '///// ERROR /////'
 
 processedDirPrefix = 'Processed'
 startTime = None
@@ -56,6 +57,7 @@ def buildPkg(cmdPath, inputFiles = []):
             try:
                 shutil.copy2(fileP, tempDir + '/' + inputDirName)
             except FileNotFoundError as e:
+                LOGGER.warn(ERROR_BANNER);
                 LOGGER.error('File %s could not be added to package because it was not found.'
                              ' Check to see if it is already processed.', inF)
         os.mkdir(tempDir + '/' + processedDirPrefix + inputDirName)
@@ -77,6 +79,7 @@ def rsyncWrapper(src, dest):
             subprocess.check_output(['rsync', '-avz', src, dest], stderr=subprocess.PIPE)
             return
         except subprocess.CalledProcessError as e:
+            LOGGER.warn(ERROR_BANNER);
             LOGGER.error('Failed to retrieve output files on attempt %s\n'
                          'Command: %s\n'
                          'Return Code: %s\n'
@@ -131,6 +134,7 @@ def execRemoteCmd():
                     cmdOut)
         return True
     except subprocess.CalledProcessError as e:
+        LOGGER.warn(ERROR_BANNER);
         LOGGER.warn('command raised a non zero exit code\n'
                     'CMD: %s\n'
                     'Exit Code: %s\n'
