@@ -14,9 +14,10 @@ ensureValidOutputAndProcess()
    local MYFILE=$1;
    local LIGAND_NAME=${f%.txt};
    local EXPECTED_ORG_FILE=org_$LIGAND_NAME;
+   local EXP_ORG_LOC=../$PROCESSED_DIR/$EXPECTED_ORG_FILE;
    ## If the ligand file with an "org_" prefix is not in the processed ligands directory, 
    ## then that means the output is not valid and should be removed.
-   if ! [ -e ../$PROCESSED_DIR/$EXPECTED_ORG_FILE ]; then
+   if ! [ -e $EXP_ORG_LOC ]; then
       echo "ERROR $LIGAND_NAME PROCESSING DID NOT COMPLETE SUCCESSFULLY"
       rm $MYFILE; ## Remove bad output.
       rm ../$PROCESSED_DIR/$LIGAND_NAME; ## Remove potential bad (incomplete) output from Processed folder, which could screw up the batcher.
@@ -28,7 +29,7 @@ ensureValidOutputAndProcess()
       mv "$MYFILE" "${MYFILE%.pdbqt.txt}.txt";   ## Change log files to *.txt files.
 
       ## Get ZINC ID from original file.
-      local zincId=$(grep "Name" $EXPECTED_ORG_FILE | uniq | awk '{print $4}');
+      local zincId=$(grep "Name" $EXP_ORG_LOC | uniq | awk '{print $4}');
       echo -e "$LIGAND_NAME\t$topRes\t$LIGAND_NAME\t$zincId" >> summary.txt;   ## Output row to file.
    fi
 }
