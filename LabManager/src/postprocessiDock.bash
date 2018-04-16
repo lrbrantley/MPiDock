@@ -40,7 +40,6 @@ cd $OUTPUT_DIR
 for f in *.txt; do
    ensureValidOutputAndProcess $f
 done
-wait
 
 ## Makes a summary file just in case it doesn't already exist.
 touch summary.txt
