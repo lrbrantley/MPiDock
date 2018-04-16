@@ -38,7 +38,7 @@ ensureValidOutputAndProcess()
 echo "Analysizing the results..."
 cd $OUTPUT_DIR
 for f in *.txt; do
-   ensureValidOutputAndProcess $f
+   ensureValidOutputAndProcess $f &
 done
 wait
 
