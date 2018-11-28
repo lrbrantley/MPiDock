@@ -14,11 +14,11 @@ parser = argparse.ArgumentParser(
     prog='LABMNGR',
     description='Launch mpiDock across the MPAC Lab cluster',
     usage='%(prog)s [options]')
-parser.add_argument('-l', '--ligand', action='store', default="./Ligand",
+parser.add_argument('-l', '--ligand', action='store', default="./Ligands",
                     help="Override Ligand Folder")
 parser.add_argument('-o', '--output', action='store', default="./Output",
                     help="Override Output Folder")
-parser.add_argument('-p', '--processed', action='store', default="./ProcessedLigand",
+parser.add_argument('-p', '--processed', action='store', default="./ProcessedLigands",
                     help="Override Processed Folder")
 parser.add_argument('-v', '--verbose', action='store_true',
                     help='Print verbose output')
@@ -119,7 +119,7 @@ def rewrite_lab_state(num_nodes):
     i = 1
     while(i - 1 != num_nodes and i < 38):
         # Exclude machine 2 and 36 because passwordless ssh doesn't work them
-        if i is 2 or i is 36 or i in args.exclude:
+        if i is 2 or i is 36 or i is 6 or i in args.exclude:
             i = i + 1
             continue
         if i < 10:
@@ -239,14 +239,14 @@ def main():
 
     system("make -C ./src" + mpi_exec)
 
-    mpi_source = "mpiexec "
+    mpi_source = "/usr/lib64/openmpi/bin/mpiexec "
     # Use the ssh information for the current machine in a spider pattern
     # without this mpi attempts to ssh in a ring patter from worker to worker
     mpi_args = "--mca plm_rsh_no_tree_spawn 1"
     # Use the eno1 network connection, this is the required network interface 
     # for the MPAC lab
     mpi_args += " --mca btl_tcp_if_include ens6f0"
-    mpi_args += " --prefix /usr/lib64/openmpi/"
+    mpi_args += " --prefix /usr/lib64/openmpi"
     # Enable 2 workers per machine for a total of 12 cores per machine
     mpi_args += " --map-by ppr:" + args.wpm + ":node" 
     # Displays verbose information about the cluster
