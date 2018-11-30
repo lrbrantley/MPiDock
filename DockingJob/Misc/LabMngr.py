@@ -116,10 +116,11 @@ def hardcode_lab_state(nodes):
 
 def rewrite_lab_state(num_nodes):
     good_nodes = list()
+    no_password_ssh = [1,2,6,18,20,28,33,36,37]
     i = 1
     while(i - 1 != num_nodes and i < 38):
         # Exclude machine 2 and 36 because passwordless ssh doesn't work them
-        if i is 1 or i is 2 or i is 36 or i is 6 or i in args.exclude:
+        if i in no_password_ssh or i in args.exclude:
             i = i + 1
             continue
         if i < 10:
