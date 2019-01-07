@@ -31,3 +31,5 @@ timelimit=8
 $batcher_loc $my_cmd $my_ssh $remote_dir --input $input --output $output\
       --batch $batch_size --timeout $timelimit --miscdir $misc_dir --processedPrefix $prefix\
       --processedFilesModified
+
+./postjob_vina.sh

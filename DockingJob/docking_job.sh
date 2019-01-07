@@ -32,4 +32,4 @@ $batcher_loc $my_cmd $my_ssh $remote_dir --input $input --output $output\
       --batch $batch_size --timeout $timelimit --miscdir $misc_dir --processedPrefix $prefix\
       --processedFilesModified
 
-./idockpostjob.sh
+./postjob_idock.sh
